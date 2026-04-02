@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PawBook - Location Permission</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2ac0ac",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#12201e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<div class="relative flex h-full min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
+<!-- Header -->
+<div class="flex items-center p-4 pb-2 justify-between">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center cursor-pointer hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Location</h2>
+</div>
+<!-- Illustration Section -->
+<div class="@container">
+<div class="px-4 py-6 flex justify-center">
+<div class="w-full max-w-sm aspect-square bg-primary/10 rounded-xl flex items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent"></div>
+<div class="relative flex flex-col items-center">
+<div class="bg-white dark:bg-slate-800 p-6 rounded-full shadow-lg border-4 border-primary mb-4">
+<span class="material-symbols-outlined text-primary text-7xl" style="font-variation-settings: 'FILL' 1">location_on</span>
+</div>
+<div class="absolute -bottom-2 -right-4 bg-primary text-white p-3 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-3xl">pets</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Content Section -->
+<div class="flex flex-col px-6 pt-2 pb-8 text-center">
+<h1 class="text-slate-900 dark:text-slate-100 text-3xl font-extrabold leading-tight mb-3">Where are you located?</h1>
+<p class="text-slate-600 dark:text-slate-400 text-base font-normal leading-relaxed">Allow PawBook to access your location to find pets and friends nearby.</p>
+</div>
+<!-- Actions Section -->
+<div class="flex flex-col gap-4 px-6 flex-grow">
+<!-- Primary Action -->
+<button class="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-md transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined">near_me</span>
+                Use My Current Location
+            </button>
+<!-- Divider -->
+<div class="flex items-center gap-4 my-2">
+<div class="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+<span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Or</span>
+<div class="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+</div>
+<!-- Manual Search Section -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Set Location Manually</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-4 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Search city, neighborhood, or zip code" type="text" value="San Francisco, CA"/>
+</div>
+<!-- Autocomplete Dropdown Preview -->
+<div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
+<div class="flex items-center gap-3 p-4 hover:bg-primary/5 cursor-pointer border-b border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-slate-400">location_on</span>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">San Francisco, CA</span>
+<span class="text-xs text-slate-500">United States</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-4 hover:bg-primary/5 cursor-pointer border-b border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-slate-400">location_on</span>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">San Diego, CA</span>
+<span class="text-xs text-slate-500">United States</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-4 hover:bg-primary/5 cursor-pointer">
+<span class="material-symbols-outlined text-slate-400">location_on</span>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-slate-100">San Jose, CA</span>
+<span class="text-xs text-slate-500">United States</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer -->
+<div class="h-20 bg-background-light dark:bg-background-dark"></div>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 pb-4 pt-2 flex gap-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-xs font-medium leading-normal tracking-tight">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">map</span>
+<p class="text-xs font-medium leading-normal tracking-tight">Map</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">pets</span>
+<p class="text-xs font-medium leading-normal tracking-tight">Social</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">person</span>
+<p class="text-xs font-medium leading-normal tracking-tight">Profile</p>
+</a>
+</div>
+</div>
+</body></html>

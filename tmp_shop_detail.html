@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2ac0ac",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#12201e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Shop Details - PawBook</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 justify-between border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight">Shop Details</h2>
+</div>
+<div class="flex gap-2">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">share</span>
+</button>
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">favorite</span>
+</button>
+</div>
+</nav>
+<!-- Hero Image Section -->
+<div class="px-4 py-3 @container">
+<div class="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-64 shadow-lg" data-alt="Interior of a clean modern pet grooming salon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBKtQzHhpTU0SxqmEkTIzCL-CIDGio3GFGjjMiUK7fpcyfQvJHubYP3wMkwIqxj4TfZy2ELHWqbXQ-6hImJ_aJqF2CukbCoJIPM1HMQ-xpIs5xZN766-K0BQex6r6LgsD_AUsm8KBFKfyBdeb1_q6IF4_9DnC5pTSaiq8KiVHjZn9aRP7l2GqaoXEH0DgnlK6z2tIroEYE1avcgwUCZz1mWHYCbUaLaeVI4Na71lASoY2AAK_BXuXppn08H7LDnOuZR2M6dKTNA3zUX");'>
+</div>
+</div>
+<!-- Shop Header Info -->
+<div class="flex p-4 flex-col gap-4">
+<div class="flex gap-4 items-start">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-xl size-24 border-4 border-white dark:border-slate-800 shadow-md" data-alt="Logo of Paws and Claws Grooming featuring a dog" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZY1cle8un2GsDqNcgFNX1RnlxPEfj-QNM7bnfUB6w7OhNkjlrRqhPIGIa9RAgXnef7rKy_QJJArDKm4ovUYtVtSeqo3qxouhrN7KNCyqEk-EX14cq8oB8kdIuP5eVFNt0GkuoQDVJQtwfB8SLgtE5diSlTl2pNpPaK98gQOGvENm_PjO9ue8QOOd3DmWl8iaiU2DTNhGXXjfVC-O6ofEOOyWbzmVFL8J48TIAidu-hetlCwV9vVBFo-k0z7OY3a_YkLLqHDyL9djw");'></div>
+<div class="flex flex-col pt-1">
+<p class="text-slate-900 dark:text-slate-100 text-2xl font-extrabold leading-tight">Paws &amp; Claws Grooming</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm">star</span>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-semibold">4.8 (200+ reviews)</p>
+</div>
+<p class="text-primary text-sm font-medium mt-0.5">Premium Pet Spa • 5 years exp.</p>
+</div>
+</div>
+</div>
+<!-- Location & Status Card -->
+<div class="mx-4 bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+<div class="flex items-center gap-4 justify-between">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold line-clamp-1">123 Pet Lane, Indiranagar, Bangalore</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal">Open until 8:00 PM • 1.2 km away</p>
+</div>
+</div>
+<button class="text-primary text-xs font-bold border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-full">Directions</button>
+</div>
+</div>
+<!-- About Section -->
+<div class="px-4 pt-6">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight mb-2">About</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+            Professional pet grooming services focused on the comfort and well-being of your furry friends. We use organic shampoos and stress-free handling techniques. Our stylists are certified and love every pet like their own.
+        </p>
+</div>
+<!-- Services Grid -->
+<div class="px-4 pt-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight">Our Services</h3>
+<span class="text-primary text-xs font-bold">See All</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<!-- Service Item 1 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-primary transition-all group">
+<div class="bg-primary/10 text-primary size-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined">bathtub</span>
+</div>
+<h4 class="text-slate-900 dark:text-slate-100 font-bold text-sm">Bath &amp; Dry</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Full body wash &amp; blow dry</p>
+<p class="text-primary font-extrabold text-base mt-3">₹299</p>
+</div>
+<!-- Service Item 2 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-primary transition-all">
+<div class="bg-primary/10 text-primary size-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined">content_cut</span>
+</div>
+<h4 class="text-slate-900 dark:text-slate-100 font-bold text-sm">Haircut</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Styling and trim</p>
+<p class="text-primary font-extrabold text-base mt-3">₹499</p>
+</div>
+<!-- Service Item 3 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-primary transition-all">
+<div class="bg-primary/10 text-primary size-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined">back_hand</span>
+</div>
+<h4 class="text-slate-900 dark:text-slate-100 font-bold text-sm">Nail Trim</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Smooth paw treatment</p>
+<p class="text-primary font-extrabold text-base mt-3">₹150</p>
+</div>
+<!-- Service Item 4 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-primary/50 dark:border-primary/50 bg-primary/5 transition-all">
+<div class="bg-primary text-white size-10 rounded-lg flex items-center justify-center mb-3 shadow-sm">
+<span class="material-symbols-outlined">pets</span>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="text-slate-900 dark:text-slate-100 font-bold text-sm">Full Grooming</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">All-in-one package</p>
+</div>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<p class="text-primary font-extrabold text-base mt-3">₹899</p>
+</div>
+</div>
+</div>
+<!-- Amenities -->
+<div class="px-4 pt-6">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight mb-3">Amenities</h3>
+<div class="flex flex-wrap gap-2">
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-medium text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined text-sm">wifi</span>
+                Free Wi-Fi
+            </div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-medium text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined text-sm">ac_unit</span>
+                Air Conditioned
+            </div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-medium text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined text-sm">local_parking</span>
+                Parking Available
+            </div>
+</div>
+</div>
+<!-- Sticky CTA -->
+<div class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between gap-4 z-50">
+<div class="flex flex-col">
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium">1 Service selected</p>
+<p class="text-slate-900 dark:text-slate-100 text-lg font-extrabold">₹899</p>
+</div>
+<button class="flex-1 bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-colors">
+            Select Service to Continue
+        </button>
+</div>
+</body></html>

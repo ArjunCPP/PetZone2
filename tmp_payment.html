@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment - PawBook</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2ac0ac",
+                        "accent-orange": "#f97316",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#12201e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+        .radio-custom:checked {
+            background-image: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27%232ac0ac%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3ccircle cx=%278%27 cy=%278%27 r=%273%27/%3e%3c/svg%3e');
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
+<!-- Top Navigation -->
+<div class="flex items-center p-4 pb-2 justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center cursor-pointer hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Payment</h2>
+</div>
+<div class="p-4">
+<!-- Order Summary Card -->
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex flex-[2_2_0px] flex-col justify-between">
+<div class="flex flex-col gap-1">
+<p class="text-primary text-xs font-bold uppercase tracking-wider">Order Summary</p>
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Paws &amp; Claws Grooming</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Full Grooming Service</p>
+<div class="flex items-center gap-2 mt-1 text-slate-500 dark:text-slate-400 text-xs">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span>Oct 24, 2023 • 10:30 AM</span>
+</div>
+</div>
+<div class="mt-4">
+<span class="inline-flex items-center rounded-lg bg-primary/10 text-primary px-3 py-1 text-sm font-bold">
+                            ₹899
+                        </span>
+</div>
+</div>
+<div class="w-24 h-24 bg-center bg-no-repeat bg-cover rounded-xl shrink-0 shadow-inner" data-alt="Golden Retriever getting a professional haircut at a salon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAX-UfxUQ5ZL9GHBNXXKcsrwbKhNjxyuSOHpz-8dpFPR6DuhyQT-sbrcRBK6ZsNX022Z8_KgISiAUW8tBdj1e4u1ZpxbQUKF57l8zCPV51GrVv45YKhS5yLTZBoe9svIzvbEJG6O9m1x3JtWZJPaSIIMeZ0bhgIm2hK8nluOryVMyvKPiKo6Kouixnb0DPxsrpcqLLXgE9_kFerIiR4vY9YOasdSCTyksl3rUZPUxIhtHGR0HF2HnLYrQbvxfZY81T_d0w1_-SNffnj");'>
+</div>
+</div>
+</div>
+<!-- Payment Methods -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Payment Methods</h3>
+<div class="flex flex-col gap-3 p-4">
+<!-- UPI Option -->
+<label class="group flex items-center gap-4 rounded-xl border border-solid border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-primary transition-all bg-white dark:bg-slate-800">
+<div class="flex grow items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold">UPI (GPay, PhonePe, Paytm)</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Pay instantly using any UPI app</p>
+</div>
+</div>
+<input checked="" class="radio-custom h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 checked:border-primary" name="payment_method" type="radio"/>
+</label>
+<!-- Card Option -->
+<label class="group flex items-center gap-4 rounded-xl border border-solid border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-primary transition-all bg-white dark:bg-slate-800">
+<div class="flex grow items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">credit_card</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold">Credit / Debit Card</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Visa, Mastercard, RuPay</p>
+</div>
+</div>
+<input class="radio-custom h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 checked:border-primary" name="payment_method" type="radio"/>
+</label>
+<!-- Cash Option -->
+<label class="group flex items-center gap-4 rounded-xl border border-solid border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-primary transition-all bg-white dark:bg-slate-800">
+<div class="flex grow items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">payments</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-bold">Cash on Service</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Pay directly at the salon after grooming</p>
+</div>
+</div>
+<input class="radio-custom h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 checked:border-primary" name="payment_method" type="radio"/>
+</label>
+</div>
+<!-- Bill Details -->
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Bill Details</h3>
+<div class="mx-4 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 mb-24">
+<div class="flex justify-between py-2">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Service Total</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">₹899.00</span>
+</div>
+<div class="flex justify-between py-2">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Taxes &amp; Fees</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">₹45.00</span>
+</div>
+<div class="flex justify-between py-2">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Discount</span>
+<span class="text-primary text-sm font-bold">- ₹0.00</span>
+</div>
+<div class="my-3 border-t border-dashed border-slate-200 dark:border-slate-700"></div>
+<div class="flex justify-between py-1">
+<span class="text-slate-900 dark:text-slate-100 text-base font-extrabold">Total Amount</span>
+<span class="text-slate-900 dark:text-slate-100 text-base font-extrabold">₹944.00</span>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-t border-slate-100 dark:border-slate-800">
+<div class="flex flex-col gap-3">
+<button class="w-full bg-accent-orange text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all">
+                    Confirm &amp; Pay ₹944
+                </button>
+<button class="w-full py-2 text-slate-500 dark:text-slate-400 font-bold text-sm hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                    Cancel Booking
+                </button>
+</div>
+</div>
+<!-- Spacer for fixed bottom -->
+<div class="h-10"></div>
+</div>
+</body></html>

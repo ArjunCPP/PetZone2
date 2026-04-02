@@ -1,0 +1,21 @@
+export type RootStackParamList = {
+  Splash:   undefined;
+  Login:    undefined;
+  Register: undefined;
+  Otp:                 { phone?: string; email: string; returnTo?: any } | undefined;
+  ForgotPassword:      { returnTo?: any } | undefined;
+  ResetPassword:       { email: string; returnTo?: any } | undefined;
+  Location:            undefined;
+  MainTabs:            undefined;
+  ShopDetail:          { shopId: string };
+  TimeSlotSelection:   { shopId: string; serviceTitle: string; price: number };
+  Payment:             { shopId: string; date: string; time: string; price: number };
+  BookingConfirmation: { shopId: string; date: string; time: string };
+  UpdateProfile:       { userData?: any };
+  AdminLogin:          undefined;
+  AdminDashboard:      undefined;
+  TodaysAppointments:  undefined;
+  BlockSlot:           undefined;
+  About:               undefined;
+  Settings:            undefined;
+};

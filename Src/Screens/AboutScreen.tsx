@@ -1,0 +1,182 @@
+import React, { useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Image, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../Navigation/types';
+import { useAppTheme } from '../ThemeContext';
+import { Icon } from '../Components/Icon';
+import { PETZONE_LOGO } from '../Assets';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'About'>;
+
+export default function AboutScreen({ navigation }: Props) {
+  const { theme: Theme } = useAppTheme();
+  const styles = useMemo(() => getStyles(Theme), [Theme]);
+
+  const handleLink = (url: string) => {
+    Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={Theme.isDark ? 'light-content' : 'dark-content'} backgroundColor={Theme.colors.surface} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="back" size={24} color={Theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>About PetZone</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Logo / Branding Section */}
+        <View style={styles.brandingSection}>
+          <View style={styles.logoContainer}>
+            <Image source={PETZONE_LOGO} style={styles.logoImage} resizeMode="contain" />
+          </View>
+          <Text style={styles.appName}>PetZone</Text>
+          <Text style={styles.appVersion}>Version 1.2.0</Text>
+          <Text style={styles.appDescription}>
+            The ultimate platform to book grooming, spa treatments, and complete care for your best furry friends. We bring the best professionals directly to your fingertips.
+          </Text>
+        </View>
+
+        {/* Links Section */}
+        <Text style={styles.sectionTitle}>Legal & Policies</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://example.com/terms')}>
+            <Text style={styles.rowTitle}>Terms of Service</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://example.com/privacy')}>
+            <Text style={styles.rowTitle}>Privacy Policy</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row}>
+            <Text style={styles.rowTitle}>Licenses</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Social Section */}
+        <Text style={styles.sectionTitle}>Connect With Us</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://instagram.com')}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.primary + '1A' }]}>
+                <Icon name="heart" size={16} color={Theme.colors.primary} />
+              </View>
+              <Text style={styles.rowTitle}>Follow on Instagram</Text>
+            </View>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => handleLink('mailto:support@petzone.com')}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.primary + '1A' }]}>
+                <Icon name="explore" size={16} color={Theme.colors.primary} />
+              </View>
+              <Text style={styles.rowTitle}>Contact Support</Text>
+            </View>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.footerText}>© 2026 PetZone Inc. All rights reserved.</Text>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const getStyles = (Theme: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Theme.colors.surface },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+    backgroundColor: Theme.colors.surface,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    fontFamily: Theme.typography.fontFamily,
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: { width: 32 },
+
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  
+  brandingSection: { alignItems: 'center', marginVertical: 32 },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: '#25bba2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#25bba2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logoImage: { width: 60, height: 60 },
+  appName: { fontSize: 28, fontWeight: '900', color: Theme.colors.text, marginBottom: 8, fontFamily: Theme.typography.fontFamily },
+  appVersion: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Theme.colors.primary,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: Theme.colors.primary + '1A',
+    borderRadius: 20,
+    fontFamily: Theme.typography.fontFamily,
+  },
+  appDescription: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
+    fontFamily: Theme.typography.fontFamily,
+  },
+
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Theme.colors.textSecondary,
+    marginTop: 24,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    fontFamily: Theme.typography.fontFamily,
+  },
+  
+  card: { backgroundColor: Theme.colors.white, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, minHeight: 60 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrapper: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: 15, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  divider: { height: 1, backgroundColor: Theme.colors.border, marginLeft: 16 },
+
+  footerText: { textAlign: 'center', fontSize: 12, color: Theme.colors.textSecondary, marginTop: 40, fontWeight: '600', fontFamily: Theme.typography.fontFamily }
+});

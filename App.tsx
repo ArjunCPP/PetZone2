@@ -1,45 +1,40 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * PetZone App – Root
+ * Uses React Navigation with NavigationContainer + StackNavigation
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React from 'react';
+import { StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { Theme } from './Src/theme';
+import { ThemeProvider, useAppTheme } from './Src/ThemeContext';
+import StackNavigation from './Src/Navigation/StackNavigation';
+import NetInfo1 from './Src/Components/NetInfo1';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+function MainApp() {
+  const { theme, isDarkMode } = useAppTheme();
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor="transparent" translucent={true} />
+      <NavigationContainer>
+        <StackNavigation />
+      </NavigationContainer>
+      <NetInfo1 />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
 
-export default App;
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Theme.colors.background },
+});
