@@ -1,4 +1,4 @@
-import React, { useMemo,  useCallback, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, Switch, StatusBar, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +39,7 @@ export default function ProfileScreen({ navigation }: Props) {
         }
         try {
           const response = await authApi.profile();
+          console.log("Profile Data >>>>>", response.data);
           if (response.data?.success) {
             setUserData(response.data.data);
           }
@@ -57,7 +58,7 @@ export default function ProfileScreen({ navigation }: Props) {
   );
 
   const menuItems: { id: string; title: string; subtitle: string; icon: IconName; route?: string }[] = [
-    { id: '2', title: 'Saved Shops', subtitle: 'Your favorite grooming centers', icon: 'heart' },
+    { id: '2', title: 'Saved Shops', subtitle: 'Your favorite grooming centers', icon: 'heart', route: 'SavedShops' },
     { id: '3', title: 'Payment Methods', subtitle: 'Cards, UPI and more', icon: 'offer' },
     { id: '7', title: 'Settings', subtitle: 'App preferences and notifications', icon: 'settings', route: 'Settings' },
     { id: '5', title: 'Admin Login', subtitle: 'For shop owners', icon: 'lock', route: 'AdminLogin' },

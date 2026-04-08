@@ -7,10 +7,11 @@ export type RootStackParamList = {
   ResetPassword:       { email: string; returnTo?: any } | undefined;
   Location:            undefined;
   MainTabs:            undefined;
-  ShopDetail:          { shopId: string };
-  TimeSlotSelection:   { shopId: string; serviceTitle: string; price: number };
-  Payment:             { shopId: string; date: string; time: string; price: number };
-  BookingConfirmation: { shopId: string; date: string; time: string };
+  ShopDetail:          { shopId: string; shopDetails?: any };
+  TimeSlotSelection:   { shopId: string; shopName: string; tenant: string; serviceDetails: string; serviceTitle: string; price: number; businessHours?: any[] };
+  PetDetails:          { shopId: string; shopName: string; tenant: string; serviceDetails: string; serviceTitle: string; price: number; date: string; time: string };
+  Payment:             { shopId: string; shopName: string; tenant: string; serviceDetails: string; serviceTitle: string; date: string; time: string; price: number; bookingId: string };
+  BookingConfirmation: { shopId: string; shopName: string; serviceTitle: string; date: string; time: string; amount: number; bookingId: string };
   UpdateProfile:       { userData?: any };
   AdminLogin:          undefined;
   AdminDashboard:      undefined;
@@ -18,4 +19,7 @@ export type RootStackParamList = {
   BlockSlot:           undefined;
   About:               undefined;
   Settings:            undefined;
+  SavedShops:          undefined;
+  Search:              undefined;
+  Notifications:       undefined;
 };

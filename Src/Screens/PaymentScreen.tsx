@@ -6,28 +6,77 @@ import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { PAYMENT_ORDER_IMAGE } from '../Assets';
 import { Icon } from '../Components/Icon';
+import RazorpayCheckout from 'react-native-razorpay';
+import { Alert } from 'react-native';
+import { RAZORPAY_CONFIG } from '../Constants/Config';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
 export default function PaymentScreen({ route, navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
-  const { date, time, price } = route.params;
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'cash'>('upi');
+  const { date, time, price, serviceTitle, shopName, bookingId } = route.params;
 
   const tax = 45;
   const total = price + tax;
+
+  const handlePayment = () => {
+    const options = {
+      description: `Payment for ${serviceTitle}`,
+      image: 'https://cdn-icons-png.flaticon.com/512/3590/3590518.png',
+      currency: 'INR',
+      key: RAZORPAY_CONFIG.API_KEY, // Use provided API Key
+      amount: total * 100, // Amount in paise
+      name: 'PetZone',
+      prefill: {
+        email: 'user@example.com',
+        contact: '9999999999',
+        name: 'PetZone User'
+      },
+      theme: { color: Theme.colors.primary }
+    };
+
+    RazorpayCheckout.open(options).then((data: any) => {
+      // Success logic
+      console.log(`Success: ${data.razorpay_payment_id}`);
+      navigation.navigate('BookingConfirmation', {
+        shopId: route.params.shopId,
+        shopName: shopName || 'PetZone Partner',
+        serviceTitle: serviceTitle || 'Pet Grooming',
+        date,
+        time,
+        amount: total,
+        bookingId: data.razorpay_payment_id
+      });
+    }).catch((error: any) => {
+      // Error logic
+      if (error.code === 2) {
+        // User cancelled by closing the modal
+        console.log('Payment Cancelled by User');
+        Alert.alert('Payment Cancelled', 'You have cancelled the payment process. Your booking has not been confirmed.');
+      } else {
+        console.log(`Error: ${error.code} | ${error.description}`);
+        Alert.alert('Payment Failed', error.description || 'Transaction was unsuccessful. Please try again or contact support.');
+      }
+    });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="back" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
+      {/* Header like other screens */}
+      <View style={styles.navBar}>
+        <View style={styles.navLeft}>
+          <TouchableOpacity 
+            onPress={() => navigation.pop(2)} 
+            style={styles.iconBtn}
+          >
+            <Icon name="back" size={20} color={Theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Payment Details</Text>
+        </View>
+        <View style={styles.navRight} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -35,60 +84,35 @@ export default function PaymentScreen({ route, navigation }: Props) {
         {/* Order Summary Card */}
         <View style={styles.orderCard}>
           <View style={styles.orderInfo}>
-            <Text style={styles.orderSubtitle}>ORDER SUMMARY</Text>
-            <Text style={styles.shopName}>Paws & Claws Grooming</Text>
-            <Text style={styles.serviceName}>Full Grooming Service</Text>
+            <Text style={styles.orderSubtitle}>SERVICE DETAILS</Text>
+            <Text style={styles.shopNameText}>{shopName || 'PetZone Partner'}</Text>
+            <Text style={styles.serviceName}>{serviceTitle || 'Pet Grooming Service'}</Text>
             <View style={styles.dateTimeRow}>
-              <Icon name="bookings" size={12} color={Theme.colors.textSecondary} />
+              <Icon name="bookings" size={14} color={Theme.colors.textSecondary} />
               <Text style={styles.dateTimeText}>{date} • {time}</Text>
             </View>
             <View style={styles.priceTag}>
               <Text style={styles.priceTagText}>₹{price}</Text>
             </View>
           </View>
-          <Image source={PAYMENT_ORDER_IMAGE} style={styles.orderImage} resizeMode="cover" />
+          <Image source={PAYMENT_ORDER_IMAGE} style={styles.orderImage} resizeMode="contain" />
         </View>
 
         {/* Payment Methods */}
-        <Text style={styles.sectionTitle}>Payment Methods</Text>
+        <Text style={styles.sectionTitle}>Payment Method</Text>
         <View style={styles.methodList}>
-          
-          <TouchableOpacity 
-            style={[styles.methodItem, paymentMethod === 'upi' && styles.methodItemSelected]} 
-            onPress={() => setPaymentMethod('upi')}
-          >
-            <View style={styles.methodIconWrapper}><Icon name="profile" size={20} color={Theme.colors.text} /></View>
-            <View style={styles.methodTextCol}>
-              <Text style={styles.methodTitle}>UPI (GPay, PhonePe, Paytm)</Text>
-              <Text style={styles.methodDesc}>Pay instantly using any UPI app</Text>
+          <View style={styles.razorpayCard}>
+            <View style={styles.methodIconWrapper}>
+              <Icon name="offer" size={20} color={Theme.colors.primary} />
             </View>
-            <View style={[styles.radio, paymentMethod === 'upi' && styles.radioSelected]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.methodItem, paymentMethod === 'card' && styles.methodItemSelected]} 
-            onPress={() => setPaymentMethod('card')}
-          >
-            <View style={styles.methodIconWrapper}><Icon name="bookings" size={20} color={Theme.colors.text} /></View>
             <View style={styles.methodTextCol}>
-              <Text style={styles.methodTitle}>Credit / Debit Card</Text>
-              <Text style={styles.methodDesc}>Visa, Mastercard, RuPay</Text>
+              <Text style={styles.methodTitle}>Secure Payment via Razorpay</Text>
+              <Text style={styles.methodDesc}>UPI, Credit/Debit Card, Net Banking</Text>
             </View>
-            <View style={[styles.radio, paymentMethod === 'card' && styles.radioSelected]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.methodItem, paymentMethod === 'cash' && styles.methodItemSelected]} 
-            onPress={() => setPaymentMethod('cash')}
-          >
-            <View style={styles.methodIconWrapper}><Icon name="offer" size={20} color={Theme.colors.text} /></View>
-            <View style={styles.methodTextCol}>
-              <Text style={styles.methodTitle}>Cash on Service</Text>
-              <Text style={styles.methodDesc}>Pay directly at the salon after grooming</Text>
+            <View style={styles.selectionDot}>
+               <View style={styles.innerDot} />
             </View>
-            <View style={[styles.radio, paymentMethod === 'cash' && styles.radioSelected]} />
-          </TouchableOpacity>
-
+          </View>
         </View>
 
         {/* Bill Details */}
@@ -119,11 +143,11 @@ export default function PaymentScreen({ route, navigation }: Props) {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.payBtn} 
-          onPress={() => navigation.navigate('BookingConfirmation', { shopId: route.params.shopId, date, time })}
+          onPress={handlePayment}
         >
           <Text style={styles.payBtnText}>Confirm & Pay ₹{total}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate('MainTabs')}>
           <Text style={styles.cancelBtn}>Cancel Booking</Text>
         </TouchableOpacity>
       </View>
@@ -133,45 +157,52 @@ export default function PaymentScreen({ route, navigation }: Props) {
 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: Theme.colors.border },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: Theme.colors.primary + '1A' },
-  backIcon: { },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: Theme.colors.text, paddingRight: 40 },
+  navBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background
+  },
+  navLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconBtn: { 
+    width: 40, height: 40, borderRadius: 20, 
+    alignItems: 'center', justifyContent: 'center', 
+    backgroundColor: Theme.colors.primary + '1A' 
+  },
+  navTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  navRight: { width: 40 },
 
-  scrollContent: { padding: 16, paddingBottom: 140 },
+  scrollContent: { padding: 20, paddingBottom: 160 },
 
   orderCard: { 
-    flexDirection: 'row', backgroundColor: Theme.colors.white, borderRadius: 16, padding: 16, 
-    borderWidth: 1, borderColor: Theme.colors.border, gap: 12, alignItems: 'center'
+    flexDirection: 'row', backgroundColor: Theme.colors.white, borderRadius: 20, padding: 20, 
+    borderWidth: 1, borderColor: '#F0F0F0', gap: 12, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2
   },
   orderInfo: { flex: 1 },
-  orderSubtitle: { fontSize: 10, fontWeight: '800', color: Theme.colors.primary, letterSpacing: 1, marginBottom: 4 },
-  shopName: { fontSize: 16, fontWeight: '700', color: Theme.colors.text },
-  serviceName: { fontSize: 14, color: Theme.colors.textSecondary, marginBottom: 8 },
-  dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  calendarIcon: { },
-  dateTimeText: { fontSize: 12, color: Theme.colors.textSecondary, fontWeight: '600' },
-  priceTag: { backgroundColor: Theme.colors.primary + '1A', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  priceTagText: { color: Theme.colors.primary, fontSize: 14, fontWeight: '800' },
-  orderImage: { width: 88, height: 88, borderRadius: 12 },
+  orderSubtitle: { fontSize: 11, fontWeight: '800', color: Theme.colors.primary, letterSpacing: 1.5, marginBottom: 8 },
+  shopNameText: { fontSize: 13, fontWeight: '700', color: Theme.colors.textSecondary, marginBottom: 2 },
+  serviceName: { fontSize: 18, fontWeight: '800', color: Theme.colors.text, marginBottom: 6 },
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15 },
+  dateTimeText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  priceTag: { backgroundColor: Theme.colors.primary + '10', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 10, alignSelf: 'flex-start' },
+  priceTagText: { color: Theme.colors.primary, fontSize: 15, fontWeight: '800' },
+  orderImage: { width: 80, height: 80, borderRadius: 15 },
 
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, marginTop: 24, marginBottom: 12 },
   
-  methodList: { gap: 12 },
-  methodItem: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white, padding: 16, 
-    borderRadius: 16, borderWidth: 1, borderColor: Theme.colors.border, gap: 12
+  methodList: { gap: 15 },
+  razorpayCard: { 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white, padding: 18, 
+    borderRadius: 20, borderWidth: 2, borderColor: Theme.colors.primary, gap: 15
   },
-  methodItemSelected: { borderColor: Theme.colors.primary, borderWidth: 2 },
-  methodIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: Theme.colors.border + '80', alignItems: 'center', justifyContent: 'center' },
-  methodEmoji: { },
+  methodIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: Theme.colors.primary + '10', alignItems: 'center', justifyContent: 'center' },
   methodTextCol: { flex: 1 },
-  methodTitle: { fontSize: 14, fontWeight: '700', color: Theme.colors.text },
-  methodDesc: { fontSize: 12, color: Theme.colors.textSecondary },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Theme.colors.border },
-  radioSelected: { borderColor: Theme.colors.primary, borderWidth: 6 },
+  methodTitle: { fontSize: 15, fontWeight: '800', color: Theme.colors.text },
+  methodDesc: { fontSize: 12, color: '#777', marginTop: 2 },
+  selectionDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
+  innerDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: Theme.colors.primary },
 
-  billCard: { backgroundColor: Theme.colors.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Theme.colors.border },
+  billCard: { backgroundColor: Theme.colors.white, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#F0F0F0' },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   billKey: { fontSize: 14, color: Theme.colors.textSecondary, fontWeight: '500' },
   billValue: { fontSize: 14, color: Theme.colors.text, fontWeight: '700' },
@@ -181,15 +212,15 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   footer: { 
     position: 'absolute', bottom: 0, left: 0, right: 0, 
-    backgroundColor: Theme.colors.white, padding: 16, paddingBottom: 32,
-    borderTopWidth: 1, borderTopColor: Theme.colors.border 
+    backgroundColor: Theme.colors.white, padding: 20, paddingBottom: 40,
+    borderTopWidth: 1, borderTopColor: '#F0F0F0' 
   },
   payBtn: { 
-    backgroundColor: Theme.colors.secondary, width: '100%', height: 56, 
-    borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    shadowColor: Theme.colors.secondary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
-    marginBottom: 12
+    backgroundColor: Theme.colors.primary, width: '100%', height: 60, 
+    borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8,
+    marginBottom: 15
   },
-  payBtnText: { color: Theme.colors.white, fontSize: 16, fontWeight: '800' },
-  cancelBtn: { textAlign: 'center', fontSize: 14, fontWeight: '700', color: Theme.colors.textSecondary },
+  payBtnText: { color: Theme.colors.white, fontSize: 17, fontWeight: '800' },
+  cancelBtn: { textAlign: 'center', fontSize: 15, fontWeight: '700', color: '#999' },
 });

@@ -27,6 +27,10 @@ import TodaysAppointmentsScreen from '../Screens/TodaysAppointmentsScreen';
 import BlockSlotScreen from '../Screens/BlockSlotScreen';
 import AboutScreen from '../Screens/AboutScreen';
 import SettingsScreen from '../Screens/SettingsScreen';
+import SearchScreen from '../Screens/SearchScreen';
+import SavedShopsScreen from '../Screens/SavedShopsScreen';
+import NotificationScreen from '../Screens/NotificationScreen';
+import PetDetailsScreen from '../Screens/PetDetailsScreen';
 
 import { RootStackParamList } from './types';
 
@@ -48,6 +52,7 @@ export default function StackNavigation() {
       <Stack.Screen name="MainTabs"   component={BottomNavigation} />
       <Stack.Screen name="ShopDetail"          component={ShopDetailScreen} />
       <Stack.Screen name="TimeSlotSelection"   component={TimeSlotSelectionScreen} />
+      <Stack.Screen name="PetDetails"          component={PetDetailsScreen} />
       <Stack.Screen name="Payment"             component={PaymentScreen} />
       <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
       <Stack.Screen name="UpdateProfile"       component={UpdateProfileScreen} />
@@ -57,6 +62,9 @@ export default function StackNavigation() {
       <Stack.Screen name="BlockSlot"           component={BlockSlotScreen} />
       <Stack.Screen name="About"               component={AboutScreen} />
       <Stack.Screen name="Settings"            component={SettingsScreen} />
+      <Stack.Screen name="SavedShops"          component={SavedShopsScreen} />
+      <Stack.Screen name="Search"              component={SearchScreen} />
+      <Stack.Screen name="Notifications"       component={NotificationScreen} />
     </Stack.Navigator>
   );
 }

@@ -30,11 +30,51 @@ class AuthApiFetch {
         return response;
     }
     tenantsList() {
-        const response = axios.get("tenants");
+        const response = axios.get("/tenants");
         return response;
     }
     profile() {
-        const response = axios.get("users/me");
+        const response = axios.get("/users/me");
+        return response;
+    }
+    updateProfile(payload: any) {
+        const response = axios.patch("/users/me", payload);
+        return response;
+    }
+    saveTenant(payload: any) {
+        const response = axios.post(`/users/me/saved-tenants/${payload}`);
+        return response;
+    }
+    deleteSaveTenant(payload: any) {
+        const response = axios.delete(`/users/me/saved-tenants/${payload}`);
+        return response;
+    }
+    savedTenants() {
+        const response = axios.get("/users/me/saved-tenants");
+        return response;
+    }
+    servicestenant(payload: any) {
+        const response = axios.get(`/services/tenant/${payload}`);
+        return response;
+    }
+    servicesSlot(payload: any) {
+        const response = axios.get(`/bookings/availability`, { params: payload });
+        return response;
+    }
+    createBooking(payload: any) {
+        const response = axios.post(`/bookings`, payload);
+        return response;
+    }
+    savedPets() {
+        const response = axios.get(`/pets`);
+        return response;
+    }
+    updateSavedPet(payload: any) {
+        const response = axios.patch(`/pets/${payload.id}`, payload);
+        return response;
+    }
+    deleteSavedPet(id: any) {
+        const response = axios.delete(`/pets/${id}`);
         return response;
     }
 }

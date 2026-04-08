@@ -12,19 +12,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BookingConfirmation'>;
 export default function BookingConfirmationScreen({ route, navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
-  const { date, time } = route.params;
+  const { date, time, shopName, serviceTitle, bookingId, amount } = route.params;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('MainTabs')} style={styles.backBtn}>
-          <Icon name="back" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirmation</Text>
-        <View style={styles.backBtnPlaceholder} />
+      {/* Header like other screens */}
+      <View style={styles.navBar}>
+        <View style={styles.navLeft}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs')} style={styles.iconBtn}>
+            <Icon name="back" size={20} color={Theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Confirmation</Text>
+        </View>
+        <View style={styles.navRight} />
       </View>
 
       <View style={styles.content}>
@@ -49,8 +51,8 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
           <View style={styles.cardBody}>
             <View style={styles.cardHeaderRow}>
               <View>
-                <Text style={styles.shopName}>Paws & Claws Grooming</Text>
-                <Text style={styles.shopAddr}>Downtown District, NYC</Text>
+                <Text style={styles.shopName}>{shopName || 'PetZone Partner'}</Text>
+                <Text style={styles.shopAddr}>Booking Successful</Text>
               </View>
               <View style={styles.statusBadge}>
                 <Text style={styles.statusText}>CONFIRMED</Text>
@@ -62,7 +64,7 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
                 <View style={styles.itemIconWrapper}><Icon name="cut" size={18} color={Theme.colors.primary} /></View>
                 <View>
                   <Text style={styles.itemLabel}>Service</Text>
-                  <Text style={styles.itemValue}>Full Grooming & Spa Package</Text>
+                  <Text style={styles.itemValue}>{serviceTitle || 'Pet Grooming'}</Text>
                 </View>
               </View>
               <View style={styles.detailItem}>
@@ -75,8 +77,15 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
               <View style={styles.detailItem}>
                 <View style={styles.itemIconWrapper}><Icon name="offer" size={18} color={Theme.colors.primary} /></View>
                 <View>
-                  <Text style={styles.itemLabel}>Booking ID</Text>
-                  <Text style={styles.itemValue}>#PB12345</Text>
+                  <Text style={styles.itemLabel}>Transaction ID</Text>
+                  <Text style={styles.itemValue}>{bookingId || '#PB12345'}</Text>
+                </View>
+              </View>
+              <View style={styles.detailItem}>
+                <View style={styles.itemIconWrapper}><Icon name="profile" size={18} color={Theme.colors.primary} /></View>
+                <View>
+                  <Text style={styles.itemLabel}>Total Paid</Text>
+                  <Text style={styles.itemValue}>₹{amount || '0.00'}</Text>
                 </View>
               </View>
             </View>
@@ -106,11 +115,23 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: Theme.colors.border },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: Theme.colors.primary + '1A' },
-  backIcon: { },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: Theme.colors.text },
-  backBtnPlaceholder: { width: 40 },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: Theme.colors.background,
+  },
+  navLeft: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  iconBtn: {
+    width: 44, height: 44,
+    backgroundColor: Theme.colors.white, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
+  },
+  navTitle: { fontSize: 20, fontWeight: '800', color: Theme.colors.text },
+  navRight: { width: 44 },
 
   content: { flex: 1, padding: 16 },
 

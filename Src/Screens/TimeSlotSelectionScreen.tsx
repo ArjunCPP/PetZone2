@@ -1,62 +1,172 @@
-import React, { useMemo,  useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, FlatList } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
+import authApi from '../Api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TimeSlotSelection'>;
 
-interface DateItem { id: string; day: string; date: number; month: string; fullDate: string; }
-interface SlotItem { id: string; time: string; status: 'available' | 'unavailable' | 'selected'; }
-
-const DATES: DateItem[] = [
-  { id: '1', day: 'Today', date: 24, month: 'Oct', fullDate: 'Thu, 24 Oct' },
-  { id: '2', day: 'Tomorrow', date: 25, month: 'Oct', fullDate: 'Fri, 25 Oct' },
-  { id: '3', day: 'Sat',   date: 26, month: 'Oct', fullDate: 'Sat, 26 Oct' },
-  { id: '4', day: 'Sun',   date: 27, month: 'Oct', fullDate: 'Sun, 27 Oct' },
-  { id: '5', day: 'Mon',   date: 28, month: 'Oct', fullDate: 'Mon, 28 Oct' },
-];
-
-const INITIAL_SLOTS: SlotItem[] = [
-  { id: '1', time: '09:00 AM', status: 'available' },
-  { id: '2', time: '10:00 AM', status: 'unavailable' },
-  { id: '3', time: '11:00 AM', status: 'selected' },
-  { id: '4', time: '12:00 PM', status: 'available' },
-  { id: '5', time: '01:00 PM', status: 'available' },
-  { id: '6', time: '02:00 PM', status: 'unavailable' },
-  { id: '7', time: '03:00 PM', status: 'available' },
-  { id: '8', time: '04:00 PM', status: 'available' },
-];
+interface DateItem { id: string; day: string; date: number; month: string; fullDate: string; isClosed: boolean; }
+interface DateItem { id: string; day: string; date: number; month: string; fullDate: string; isClosed: boolean; }
+interface SlotItem { 
+  id: string; 
+  time: string; // Original time (e.g. ISO or HH:mm)
+  displayTime: string; 
+  isBlocked: boolean;
+  isBooked: boolean;
+  isFull: boolean;
+  isAvailable: boolean;
+  isSelected?: boolean;
+}
 
 export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
+  console.log("Route Params: time slot", route.params);
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
-  const { serviceTitle, price } = route.params;
-  const [selectedDateId, setSelectedDateId] = useState('1');
-  const [slots, setSlots] = useState(INITIAL_SLOTS);
+  const { serviceTitle, price, tenant, serviceDetails, businessHours } = route.params;
 
-  const selectedDate = DATES.find(d => d.id === selectedDateId);
-  const selectedSlot = slots.find(s => s.status === 'selected');
+  const dates = useMemo(() => {
+    const generated: DateItem[] = [];
+    const today = new Date();
+
+    // Mapping: Backend (Mon=0...Sun=6) vs JS getDay (Sun=0, Mon=1...Sat=6)
+    const backendDayIdxMap = [6, 0, 1, 2, 3, 4, 5]; // JS getDay() result -> Backend Index
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+
+      const dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const backendIdx = backendDayIdxMap[d.getDay()];
+      const isClosed = businessHours?.[backendIdx]?.isClosed ?? false;
+
+      // Format as YYYY-MM-DD for API
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+      generated.push({
+        id: String(i),
+        day: dayName,
+        date: d.getDate(),
+        month: d.toLocaleDateString('en-US', { month: 'short' }),
+        fullDate: formattedDate,
+        isClosed: isClosed
+      });
+    }
+    return generated;
+  }, [businessHours]);
+
+  const [selectedDateId, setSelectedDateId] = useState(() => {
+    // Select first non-closed date if possible
+    const firstAvailable = dates.find(d => !d.isClosed);
+    return firstAvailable ? firstAvailable.id : '0';
+  });
+  const [slots, setSlots] = useState<SlotItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const selectedDate = useMemo(() => dates.find(d => d.id === selectedDateId), [dates, selectedDateId]);
+  const selectedSlot = slots.find(s => s.isSelected);
+
+  useEffect(() => {
+    if (selectedDate && !selectedDate.isClosed) {
+      fetchAvailability(selectedDate.fullDate);
+    } else {
+      setSlots([]);
+      setIsLoading(false);
+    }
+  }, [selectedDateId]);
+
+  const formatToAmPm = (time24: string) => {
+    const [hours, minutes] = time24.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  const generateTimeSlots = (apiSlots: any[]) => {
+    return apiSlots.map((slot, index) => {
+      const startTime = new Date(slot.time);
+      const displayTime = startTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      return {
+        id: slot.time, // Using the time string as unique ID
+        time: slot.time,
+        displayTime: displayTime,
+        isBlocked: slot.isBlocked ?? false,
+        isBooked: slot.isBooked ?? false,
+        isFull: slot.isFull ?? false,
+        isAvailable: slot.isAvailable ?? true,
+        isSelected: false
+      };
+    });
+  };
+
+  const fetchAvailability = async (dateStr: string) => {
+    try {
+      setIsLoading(true);
+      const payload = {
+        tenant: tenant,
+        serviceDetails: serviceDetails,
+        date: dateStr,
+      };
+      console.log("Response Time Slot Payload:", payload);
+
+      const response = await authApi.servicesSlot(payload);
+      console.log("Response Time Slot Data:", response.data);
+
+      if (response.data?.success) {
+        const { slots: apiSlots, availableSlots } = response.data.data;
+        const processedSlots = generateTimeSlots(apiSlots || availableSlots || []);
+        setSlots(processedSlots);
+      } else {
+        setSlots([]);
+      }
+    } catch (error) {
+      console.log("Error fetching slots", error);
+      setSlots([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSlotPress = (id: string) => {
     setSlots(current => current.map(s => {
-      if (s.status === 'unavailable') return s;
-      return { ...s, status: s.id === id ? 'selected' : 'available' };
+      // Don't allow selecting if not available for any reason
+      if (!s.isAvailable || s.isBlocked || s.isBooked || s.isFull) return s;
+      return { ...s, isSelected: s.id === id };
     }));
   };
 
+  const SlotSkeleton = () => (
+    <View style={styles.slotsGrid}>
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <View key={i} style={[styles.slotCard, styles.skeletonCard]} />
+      ))}
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="back" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{serviceTitle} - ₹{price}</Text>
+
+      {/* Normal Header like ShopDetail */}
+      <View style={styles.navBar}>
+        <View style={styles.navLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <Icon name="back" size={20} color={Theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>{serviceTitle}</Text>
+        </View>
+        <View style={styles.navRight} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -65,21 +175,46 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
           <Text style={styles.sectionTitle}>Select Date</Text>
           <FlatList
             horizontal
-            data={DATES}
+            data={dates}
             keyExtractor={item => item.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.dateList}
             renderItem={({ item }) => {
               const isSelected = item.id === selectedDateId;
+              const isClosed = item.isClosed;
+
               return (
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setSelectedDateId(item.id)}
-                  style={[styles.dateCard, isSelected && styles.dateCardSelected]}
+                  onPress={() => !isClosed && setSelectedDateId(item.id)}
+                  disabled={isClosed}
+                  style={[
+                    styles.dateCard,
+                    isSelected && styles.dateCardSelected,
+                    isClosed && styles.dateCardDisabled
+                  ]}
                 >
-                  <Text style={[styles.dateDay, isSelected && styles.dateTextSelected]}>{item.day}</Text>
-                  <Text style={[styles.dateNum, isSelected && styles.dateTextSelected]}>{item.date}</Text>
-                  <Text style={[styles.dateMonth, isSelected && styles.dateTextSelected]}>{item.month}</Text>
+                  <Text style={[
+                    styles.dateDay,
+                    isSelected && styles.dateTextSelected,
+                    isClosed && styles.dateTextDisabled
+                  ]}>{item.day}</Text>
+                  <Text style={[
+                    styles.dateNum,
+                    isSelected && styles.dateTextSelected,
+                    isClosed && styles.dateTextDisabled
+                  ]}>{item.date}</Text>
+                  <Text style={[
+                    styles.dateMonth,
+                    isSelected && styles.dateTextSelected,
+                    isClosed && styles.dateTextDisabled
+                  ]}>{item.month}</Text>
+
+                  {isClosed && (
+                    <View style={styles.closedBadge}>
+                      <Text style={styles.closedText}>Closed</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             }}
@@ -89,59 +224,94 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
         {/* Slot Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Available Slots</Text>
-          <View style={styles.slotsGrid}>
-            {slots.map(slot => {
-              const isSelected = slot.status === 'selected';
-              const isUnavailable = slot.status === 'unavailable';
-              
-              return (
-                <TouchableOpacity 
-                  key={slot.id} 
-                  disabled={isUnavailable}
-                  onPress={() => handleSlotPress(slot.id)}
-                  style={[
-                    styles.slotCard, 
-                    isSelected && styles.slotCardSelected,
-                    isUnavailable && styles.slotCardUnavailable
-                  ]}
-                >
-                  <Text style={[
-                    styles.slotTime,
-                    isSelected && styles.slotTimeSelected,
-                    isUnavailable && styles.slotTimeUnavailable
-                  ]}>
-                    {slot.time}
-                  </Text>
-                  <View style={[styles.slotIcon, isSelected && styles.slotIconSelected]}>
-                    {isUnavailable ? (
-                      <Icon name="close" size={18} color={Theme.colors.textSecondary} />
-                    ) : isSelected ? (
-                      <Icon name="check" size={18} color={Theme.colors.white} />
-                    ) : (
-                      <Icon name="check" size={18} color={Theme.colors.primary + '33'} />
+          {isLoading ? (
+            <SlotSkeleton />
+          ) : (
+            <View style={styles.slotsGrid}>
+              {slots.map(slot => {
+                const isSelected = slot.isSelected;
+                const isDisabled = !slot.isAvailable || slot.isBlocked || slot.isBooked || slot.isFull;
+
+                let cardStyle: any[] = [styles.slotCard];
+                let textStyle: any[] = [styles.slotTime];
+                let statusLabel = '';
+
+                if (isSelected) {
+                  cardStyle.push(styles.slotCardSelected);
+                  textStyle.push(styles.slotTimeSelected);
+                } else if (slot.isBooked) {
+                  cardStyle.push(styles.slotCardBooked);
+                  textStyle.push(styles.slotTimeBooked);
+                  statusLabel = 'Booked';
+                } else if (slot.isFull) {
+                  cardStyle.push(styles.slotCardFull);
+                  textStyle.push(styles.slotTimeFull);
+                  statusLabel = 'Full';
+                } else if (slot.isBlocked) {
+                  cardStyle.push(styles.slotCardBlocked);
+                  textStyle.push(styles.slotTimeBlocked);
+                  statusLabel = 'Blocked';
+                } else if (!slot.isAvailable) {
+                  cardStyle.push(styles.slotCardUnavailable);
+                  textStyle.push(styles.slotTimeUnavailable);
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={slot.id}
+                    activeOpacity={0.7}
+                    disabled={isDisabled}
+                    onPress={() => handleSlotPress(slot.id)}
+                    style={cardStyle}
+                  >
+                    <View style={styles.slotContent}>
+                      {slot.isBlocked && <Icon name="lock" size={12} color="#757575" style={{marginRight: 4}} />}
+                      <Text style={textStyle}>{slot.displayTime}</Text>
+                    </View>
+                    
+                    {statusLabel !== '' && !isSelected && (
+                      <Text style={[styles.statusMiniLabel, {color: (textStyle[textStyle.length-1] as any).color || '#444'}]}>
+                        {statusLabel}
+                      </Text>
                     )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+
+                    {isSelected && (
+                      <View style={styles.slotCheck}>
+                        <Icon name="check" size={10} color={Theme.colors.primary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Legend */}
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: Theme.colors.primary + '33' }]} />
-            <Text style={styles.legendText}>Available</Text>
+        {!isLoading && (
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#E0E0E0' }]} />
+              <Text style={styles.legendText}>Available</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: Theme.colors.primary }]} />
+              <Text style={styles.legendText}>Selected</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#FFEBEE' }]} />
+              <Text style={styles.legendText}>Booked</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#FFF3E0' }]} />
+              <Text style={styles.legendText}>Full</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#F5F5F5' }]} />
+              <Text style={styles.legendText}>Blocked</Text>
+            </View>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: Theme.colors.secondary }]} />
-            <Text style={styles.legendText}>Selected</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: Theme.colors.border }]} />
-            <Text style={styles.legendText}>Unavailable</Text>
-          </View>
-        </View>
+        )}
       </ScrollView>
 
       {/* Sticky Footer */}
@@ -149,24 +319,29 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
         <View style={styles.footerInfo}>
           <View>
             <Text style={styles.footerLabel}>BOOKING SLOT</Text>
-            <Text style={styles.footerValue}>{selectedDate?.fullDate} • {selectedSlot?.time}</Text>
+            <Text style={styles.footerValue}>{selectedDate?.fullDate} • {selectedSlot?.displayTime || '---'}</Text>
           </View>
           <View style={styles.footerPriceCol}>
             <Text style={styles.footerLabel}>TOTAL AMOUNT</Text>
             <Text style={styles.footerPrice}>₹{price}</Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.payBtn} 
-          onPress={() => navigation.navigate('Payment', { 
+        <TouchableOpacity
+          style={[styles.payBtn, !selectedSlot && { opacity: 0.5 }]}
+          disabled={!selectedSlot}
+          onPress={() => navigation.navigate('PetDetails', {
             shopId: route.params.shopId,
+            shopName: route.params.shopName,
+            tenant: route.params.tenant,
+            serviceDetails: route.params.serviceDetails,
+            serviceTitle: route.params.serviceTitle,
             date: selectedDate?.fullDate || '',
-            time: selectedSlot?.time || '',
+            time: selectedSlot?.id || '',
             price: price
           })}
         >
-          <Text style={styles.payBtnText}>Proceed to Pay</Text>
-          <Icon name="arrow_forward" size={20} color={Theme.colors.white} />
+          <Text style={styles.payBtnText}>Confirm Booking</Text>
+          <Icon name="check" size={18} color={Theme.colors.white} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -175,65 +350,81 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
-  header: { 
-    backgroundColor: Theme.colors.background, paddingHorizontal: 16, paddingBottom: 8,
-    flexDirection: 'row', alignItems: 'center'
+  navBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background
   },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: Theme.colors.primary + '1A' },
-  backIcon: { },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily, marginLeft: 12 },
-  
-  scrollContent: { paddingBottom: 120 },
-  section: { padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, marginBottom: 16, fontFamily: Theme.typography.fontFamily },
-  
-  dateList: { paddingRight: 16 },
-  dateCard: { 
-    width: 72, height: 80, borderRadius: Theme.roundness.large, 
-    backgroundColor: Theme.colors.primary + '1A', borderWidth: 1, borderColor: Theme.colors.primary + '33',
+  navLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.primary + '1A' },
+  navTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+
+  scrollContent: { paddingBottom: 160 },
+  section: { padding: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1A1C1E', marginBottom: 16 },
+
+  dateList: { paddingRight: 20 },
+  dateCard: {
+    width: 80, height: 90, borderRadius: 18,
+    backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#F0F0F0',
     alignItems: 'center', justifyContent: 'center', marginRight: 12
   },
-  dateCardSelected: { backgroundColor: Theme.colors.primary, shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
-  dateDay: { fontSize: 10, fontWeight: '600', color: Theme.colors.textSecondary, marginBottom: 4 },
-  dateNum: { fontSize: 18, fontWeight: '800', color: Theme.colors.text },
-  dateMonth: { fontSize: 10, fontWeight: '600', color: Theme.colors.textSecondary, marginTop: 4 },
+  dateCardSelected: { backgroundColor: Theme.colors.primary, borderColor: Theme.colors.primary, elevation: 6, shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+  dateDay: { fontSize: 11, fontWeight: '700', color: '#8E9196', marginBottom: 4 },
+  dateNum: { fontSize: 20, fontWeight: '900', color: '#1A1C1E' },
+  dateMonth: { fontSize: 11, fontWeight: '700', color: '#8E9196', marginTop: 2 },
   dateTextSelected: { color: Theme.colors.white },
+  dateCardDisabled: { opacity: 0.6, backgroundColor: '#F0F0F0' },
+  dateTextDisabled: { color: '#B0B0B0' },
+  closedBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: '#FFEDED', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
+  closedText: { fontSize: 6, fontWeight: '900', color: '#FF5252', textTransform: 'uppercase' },
 
   slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  slotCard: { 
-    width: '48%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.primary + '4D',
-    backgroundColor: Theme.colors.white
+  slotCard: {
+    width: '46.5%', height: 50,
+    backgroundColor: Theme.colors.white, borderRadius: 10,
+    borderWidth: 1, borderColor: '#EBEBEB',
+    alignItems: 'center', justifyContent: 'center',
   },
-  slotCardSelected: { borderColor: Theme.colors.secondary, borderWidth: 2, backgroundColor: Theme.colors.secondary + '0D' },
-  slotCardUnavailable: { borderColor: Theme.colors.border, backgroundColor: Theme.colors.border + '33', opacity: 0.6 },
-  slotTime: { fontSize: 14, fontWeight: '700', color: Theme.colors.text },
-  slotTimeSelected: { color: Theme.colors.secondary },
-  slotTimeUnavailable: { textDecorationLine: 'line-through', color: Theme.colors.textSecondary },
-  slotIcon: { },
-  slotIconSelected: {},
+  slotCardSelected: { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primary },
+  slotCardUnavailable: { backgroundColor: '#F8F9FA', opacity: 0.5, borderColor: '#EBEBEB' },
+  slotCardBooked: { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' },
+  slotCardFull: { backgroundColor: '#FFF3E0', borderColor: '#FFE0B2' },
+  slotCardBlocked: { backgroundColor: '#F5F5F5', borderColor: '#E0E0E0' },
+  slotTime: { fontSize: 13, fontWeight: '700', color: '#444' },
+  slotTimeSelected: { color: Theme.colors.white },
+  slotTimeUnavailable: { textDecorationLine: 'line-through', color: '#BCBCBC' },
+  slotTimeBooked: { color: '#D32F2F' },
+  slotTimeFull: { color: '#E65100' },
+  slotTimeBlocked: { color: '#757575' },
+  slotContent: { flexDirection: 'row', alignItems: 'center' },
+  statusMiniLabel: { fontSize: 9, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
+  slotCheck: { position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: Theme.colors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: Theme.colors.primary },
 
-  legendRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 16 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  skeletonCard: { backgroundColor: '#EBEBEB', borderWidth: 0, opacity: 0.5 },
+
+  legendRow: { flexDirection: 'row', paddingHorizontal: 24, gap: 20, marginTop: 10 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 12, fontWeight: '600', color: Theme.colors.textSecondary },
+  legendText: { fontSize: 12, fontWeight: '700', color: '#8E9196' },
 
-  footer: { 
+  footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Theme.colors.white, padding: 16, paddingBottom: 24,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 10
+    backgroundColor: Theme.colors.white, padding: 20, paddingBottom: 34,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 20,
+    borderTopWidth: 1, borderTopColor: '#F0F0F0'
   },
-  footerInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  footerLabel: { fontSize: 10, fontWeight: '800', color: Theme.colors.textSecondary, letterSpacing: 1, marginBottom: 4 },
-  footerValue: { fontSize: 14, fontWeight: '700', color: Theme.colors.text },
+  footerInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  footerLabel: { fontSize: 10, fontWeight: '900', color: '#A0A3A8', letterSpacing: 1, marginBottom: 4 },
+  footerValue: { fontSize: 14, fontWeight: '800', color: '#1A1C1E' },
   footerPriceCol: { alignItems: 'flex-end' },
-  footerPrice: { fontSize: 20, fontWeight: '800', color: Theme.colors.primary },
-  payBtn: { 
-    width: '100%', height: 56, backgroundColor: Theme.colors.secondary, 
-    borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
-    shadowColor: Theme.colors.secondary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5
+  footerPrice: { fontSize: 22, fontWeight: '900', color: Theme.colors.primary },
+  payBtn: {
+    width: '100%', height: 60, backgroundColor: Theme.colors.primary,
+    borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
+    shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8
   },
-  payBtnText: { color: Theme.colors.white, fontSize: 16, fontWeight: '700' },
-  payBtnArrow: { },
+  payBtnText: { color: Theme.colors.white, fontSize: 17, fontWeight: '800' },
 });

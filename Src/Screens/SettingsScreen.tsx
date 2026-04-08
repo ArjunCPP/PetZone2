@@ -35,6 +35,11 @@ export default function SettingsScreen({ navigation }: Props) {
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
           <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('SavedShops')}>
+            <Text style={styles.rowTitle}>Saved Shops</Text>
+            <Icon name="heart" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.row}>
             <Text style={styles.rowTitle}>Linked Accounts</Text>
             <Text style={styles.rowSubtitle}>Google connected</Text>
