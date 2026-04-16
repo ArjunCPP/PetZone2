@@ -1,5 +1,5 @@
-import React, { useMemo,  useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, ActivityIndicator, Image } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, ActivityIndicator, Image, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -25,6 +25,20 @@ export default function OtpScreen({ route, navigation }: Props) {
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ visible: true, message, type });
@@ -94,14 +108,14 @@ export default function OtpScreen({ route, navigation }: Props) {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => navigation.goBack()}
+            onPress={handleBack}
             activeOpacity={0.7}
           >
             <Icon name="back" size={24} color={Theme.colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitleGroup}>
             <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-            <Text style={styles.headerTitle}>PetZone</Text>
+            <Text style={styles.headerTitle}>PawNest</Text>
           </View>
           <View style={styles.headerSpacer} />
         </View>

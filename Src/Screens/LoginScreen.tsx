@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, Image,
   ActivityIndicator, Alert, StatusBar
 } from 'react-native';
@@ -85,8 +85,18 @@ export default function LoginScreen({ navigation }: Props) {
       await Keychain.setGenericPassword('token', accessToken);
       navigation.replace('MainTabs');
     } catch (error: any) {
-      if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled the sign-in flow - silent
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        showToast('Sign in is already in progress', 'error');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('Play Services Required', 'Please update Google Play Services.');
+      } else if (error.code === '10') {
+        // '10' is the standard code for DEVELOPER_ERROR (SHA-1 mismatch or wrong configuration)
+        Alert.alert('Configuration Error', 'Google Sign-In is not configured correctly for this build (Developer Error 10). Please check your SHA-1 fingerprints in Firebase/Google Console.');
+      } else {
+        showToast(error.message || 'Google Sign-In failed', 'error');
+        console.error('Google Sign-In Error:', error);
       }
     } finally {
       setIsSigningIn(false);
@@ -98,15 +108,21 @@ export default function LoginScreen({ navigation }: Props) {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={Theme.colors.surface} />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.container}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView 
+          style={styles.flex} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
 
           {/* ── Header ── */}
           <View style={styles.header}>
             <View style={styles.headerSpacer} />
             <View style={styles.headerTitleGroup}>
               <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-              <Text style={styles.headerTitle}>PetZone</Text>
+              <Text style={styles.headerTitle}>PawNest</Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>
@@ -139,6 +155,8 @@ export default function LoginScreen({ navigation }: Props) {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={(v) => { setEmail(v); setErrors({ ...errors, email: '' }); }}
+                  cursorColor={Theme.colors.primary}
+                  selectionColor={Theme.colors.primary + '40'}
                 />
               </View>
               {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
@@ -154,6 +172,8 @@ export default function LoginScreen({ navigation }: Props) {
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(v) => { setPassword(v); setErrors({ ...errors, password: '' }); }}
+                  cursorColor={Theme.colors.primary}
+                  selectionColor={Theme.colors.primary + '40'}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Icon name={showPassword ? "eye_off" : "eye"} size={20} color={Theme.colors.textSecondary} />
@@ -211,8 +231,9 @@ export default function LoginScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
+          </View>
           <View style={styles.footerSpacer} />
-        </View>
+        </ScrollView>
 
         <Toast
           visible={toast.visible}
@@ -233,6 +254,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 20,
     alignItems: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'space-between',
   },
   header: {

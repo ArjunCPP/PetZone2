@@ -8,6 +8,7 @@ import SearchIcon from '../Assets/Icons/Search.svg';
 import NotificationsIcon from '../Assets/Icons/Notifications.svg';
 import LocationIcon from '../Assets/Icons/Location.svg';
 import HeartIcon from '../Assets/Icons/Heart.svg';
+import HeartFilledIcon from '../Assets/Icons/HeartFilled.svg';
 import StarIcon from '../Assets/Icons/Star.svg';
 import ExploreIcon from '../Assets/Icons/Explore.svg';
 import BookingsIcon from '../Assets/Icons/Bookings.svg';
@@ -44,6 +45,7 @@ export type IconName =
   | 'notifications' 
   | 'location' 
   | 'heart' 
+  | 'heart_filled'
   | 'star' 
   | 'explore' 
   | 'bookings' 
@@ -79,6 +81,7 @@ const ICONS: Record<IconName, React.FC<SvgProps>> = {
   notifications: NotificationsIcon,
   location: LocationIcon,
   heart: HeartIcon,
+  heart_filled: HeartFilledIcon,
   star: StarIcon,
   explore: ExploreIcon,
   bookings: BookingsIcon,

@@ -1,5 +1,5 @@
-import React, { useMemo,  useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar } from 'react-native';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -9,6 +9,7 @@ import { Icon } from '../Components/Icon';
 import RazorpayCheckout from 'react-native-razorpay';
 import { Alert } from 'react-native';
 import { RAZORPAY_CONFIG } from '../Constants/Config';
+import authApi from '../Api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -17,48 +18,120 @@ export default function PaymentScreen({ route, navigation }: Props) {
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const { date, time, price, serviceTitle, shopName, bookingId } = route.params;
 
-  const tax = 45;
-  const total = price + tax;
+  const handleBack = useCallback(() => {
+    // User preferred: Go back 2 steps to Time Slot Selection
+    navigation.pop(2);
+    return true;
+  }, [navigation]);
 
-  const handlePayment = () => {
-    const options = {
-      description: `Payment for ${serviceTitle}`,
-      image: 'https://cdn-icons-png.flaticon.com/512/3590/3590518.png',
-      currency: 'INR',
-      key: RAZORPAY_CONFIG.API_KEY, // Use provided API Key
-      amount: total * 100, // Amount in paise
-      name: 'PetZone',
-      prefill: {
-        email: 'user@example.com',
-        contact: '9999999999',
-        name: 'PetZone User'
-      },
-      theme: { color: Theme.colors.primary }
-    };
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
 
-    RazorpayCheckout.open(options).then((data: any) => {
-      // Success logic
-      console.log(`Success: ${data.razorpay_payment_id}`);
-      navigation.navigate('BookingConfirmation', {
-        shopId: route.params.shopId,
-        shopName: shopName || 'PetZone Partner',
-        serviceTitle: serviceTitle || 'Pet Grooming',
-        date,
-        time,
-        amount: total,
-        bookingId: data.razorpay_payment_id
+  const tax = 0;
+  const total = price;
+
+  const displayTime = useMemo(() => {
+    try {
+      if (!time) return '---';
+      const d = new Date(time);
+      return d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
       });
-    }).catch((error: any) => {
-      // Error logic
-      if (error.code === 2) {
-        // User cancelled by closing the modal
-        console.log('Payment Cancelled by User');
-        Alert.alert('Payment Cancelled', 'You have cancelled the payment process. Your booking has not been confirmed.');
-      } else {
-        console.log(`Error: ${error.code} | ${error.description}`);
-        Alert.alert('Payment Failed', error.description || 'Transaction was unsuccessful. Please try again or contact support.');
+    } catch (e) {
+      return time;
+    }
+  }, [time]);
+
+  const handlePayment = async () => {
+    try {
+      // 1. First call paymentOrder API to get order details
+      console.log("🚀 [PaymentOrder] Calling API for booking:", bookingId);
+      const orderRes = await authApi.paymentOrder({ bookingId });
+      console.log("✅ [PaymentOrder] Response:", JSON.stringify(orderRes.data, null, 2));
+
+      if (!orderRes.data || !orderRes.data.success) {
+        Alert.alert('Error', 'Unable to initiate payment. Please try again.');
+        return;
       }
-    });
+
+      const orderData = orderRes.data.data;
+      // Handle different possible response structures
+      const razorpayOrderId = orderData?.id || orderData?.orderId || orderData?.razorpayOrderId || (orderData?.order?.id);
+
+      if (!razorpayOrderId) {
+        console.error("❌ [PaymentOrder] Failed to find Order ID in response:", orderData);
+        Alert.alert('Payment Error', 'Failed to initialize payment order. Please try again.');
+        return;
+      }
+
+      // 2. Open Razorpay Checkout
+      const options = {
+        description: `Payment for ${serviceTitle}`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3590/3590518.png',
+        currency: 'INR',
+        key: RAZORPAY_CONFIG.API_KEY,
+        amount: total * 100,
+        name: 'PawNest',
+        order_id: razorpayOrderId, // Pass server-side order ID
+        prefill: {
+          email: 'user@example.com',
+          contact: '9999999999',
+          name: 'PawNest User'
+        },
+        theme: { color: Theme.colors.primary }
+      };
+
+      console.log("💳 Opening Razorpay with OrderID:", razorpayOrderId);
+      
+      RazorpayCheckout.open(options).then(async (data: any) => {
+        // Razorpay Success
+        console.log("✅ Razorpay Success:", JSON.stringify(data, null, 2));
+        
+        // 3. Verify Payment
+        const verifyPayload = {
+          razorpayOrderId: data.razorpay_order_id || razorpayOrderId,
+          razorpayPaymentId: data.razorpay_payment_id,
+          razorpaySignature: data.razorpay_signature,
+          bookingId: bookingId
+        };
+        
+        console.log("📡 [PaymentVerify] Calling API with:", JSON.stringify(verifyPayload, null, 2));
+        const verifyRes = await authApi.paymentVerify(verifyPayload);
+        console.log("🏁 [PaymentVerify] Response:", JSON.stringify(verifyRes.data, null, 2));
+
+        if (verifyRes.data && verifyRes.data.success) {
+          navigation.navigate('BookingConfirmation', {
+            shopId: route.params.shopId,
+            shopName: shopName || 'PawNest Partner',
+            serviceTitle: serviceTitle || 'Pet Grooming',
+            date,
+            time,
+            amount: total,
+            bookingId: data.razorpay_payment_id
+          });
+        } else {
+          navigation.navigate('BookingFailed', { bookingId });
+        }
+      }).catch(async (error: any) => {
+        // Razorpay Failure or Cancel
+        console.log("❌ Razorpay Error:", JSON.stringify(error, null, 2));
+        
+        if (error.code === 2) {
+          Alert.alert('Payment Cancelled', 'Transaction was cancelled by user.');
+        } else {
+          // Even on failure, we can call verify if we have data, 
+          // but usually we just navigate to failure if the modal fails.
+          navigation.navigate('BookingFailed', { bookingId });
+        }
+      });
+    } catch (apiError: any) {
+      console.log('❌ Payment Step Error:', apiError.response?.data || apiError.message);
+      Alert.alert('Error', 'Something went wrong during payment initialization.');
+    }
   };
 
   return (
@@ -69,7 +142,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
       <View style={styles.navBar}>
         <View style={styles.navLeft}>
           <TouchableOpacity 
-            onPress={() => navigation.pop(2)} 
+            onPress={handleBack} 
             style={styles.iconBtn}
           >
             <Icon name="back" size={20} color={Theme.colors.text} />
@@ -85,11 +158,11 @@ export default function PaymentScreen({ route, navigation }: Props) {
         <View style={styles.orderCard}>
           <View style={styles.orderInfo}>
             <Text style={styles.orderSubtitle}>SERVICE DETAILS</Text>
-            <Text style={styles.shopNameText}>{shopName || 'PetZone Partner'}</Text>
+            <Text style={styles.shopNameText}>{shopName || 'PawNest Partner'}</Text>
             <Text style={styles.serviceName}>{serviceTitle || 'Pet Grooming Service'}</Text>
             <View style={styles.dateTimeRow}>
               <Icon name="bookings" size={14} color={Theme.colors.textSecondary} />
-              <Text style={styles.dateTimeText}>{date} • {time}</Text>
+              <Text style={styles.dateTimeText}>{date} • {displayTime}</Text>
             </View>
             <View style={styles.priceTag}>
               <Text style={styles.priceTagText}>₹{price}</Text>
@@ -121,14 +194,6 @@ export default function PaymentScreen({ route, navigation }: Props) {
           <View style={styles.billRow}>
             <Text style={styles.billKey}>Service Total</Text>
             <Text style={styles.billValue}>₹{price}.00</Text>
-          </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billKey}>Taxes & Fees</Text>
-            <Text style={styles.billValue}>₹{tax}.00</Text>
-          </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billKey}>Discount</Text>
-            <Text style={[styles.billValue, { color: Theme.colors.primary }]}>- ₹0.00</Text>
           </View>
           <View style={styles.dashedDivider} />
           <View style={styles.billRow}>

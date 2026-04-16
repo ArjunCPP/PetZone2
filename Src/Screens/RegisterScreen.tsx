@@ -109,7 +109,7 @@ export default function RegisterScreen({ navigation }: Props) {
     <SafeAreaView style={styles.flex}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
@@ -126,7 +126,7 @@ export default function RegisterScreen({ navigation }: Props) {
             </TouchableOpacity>
             <View style={styles.headerTitleGroup}>
               <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-              <Text style={styles.headerTitle}>PetZone</Text>
+              <Text style={styles.headerTitle}>PawNest</Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>
@@ -233,6 +233,8 @@ function InputGroup({ label, rightIcon, onRightIconPress, error, styles, Theme, 
         <TextInput
           style={styles.input}
           placeholderTextColor={Theme.colors.textSecondary}
+          cursorColor={Theme.colors.primary}
+          selectionColor={Theme.colors.primary + '40'}
           {...props}
         />
         {rightIcon && (

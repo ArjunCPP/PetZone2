@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image
+  View, Text, TextInput, TouchableOpacity, ScrollView,
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, BackHandler
 } from 'react-native';
+import { useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -30,6 +31,20 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ visible: true, message, type });
   };
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
 
   const validateForm = () => {
     let newErrors: any = {};
@@ -92,20 +107,26 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.flex}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.staticContainer}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView 
+          style={styles.flex} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.staticContainer}>
           {/* ── Header ────────────────────────────── */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={() => navigation.goBack()}
+              onPress={handleBack}
               activeOpacity={0.7}
             >
               <Icon name="back" size={24} color={Theme.colors.text} />
             </TouchableOpacity>
             <View style={styles.headerTitleGroup}>
               <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-              <Text style={styles.headerTitle}>PetZone</Text>
+              <Text style={styles.headerTitle}>PawNest</Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>
@@ -176,6 +197,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
           />
           <View style={styles.footerSpacer} />
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -189,6 +211,8 @@ function InputGroup({ label, rightIcon, onRightIconPress, error, styles, Theme, 
         <TextInput
           style={styles.input}
           placeholderTextColor={Theme.colors.textSecondary}
+          cursorColor={Theme.colors.primary}
+          selectionColor={Theme.colors.primary + '40'}
           {...props}
         />
         {rightIcon && (
@@ -209,7 +233,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',

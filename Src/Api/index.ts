@@ -1,4 +1,4 @@
-import { axios } from "../Utils/config";
+import { axios, multiPartAxiosInstance } from "../Utils/config";
 
 class AuthApiFetch {
     authToken(payload: any) {
@@ -29,8 +29,12 @@ class AuthApiFetch {
         const response = axios.post("/auth/user/reset-password", payload);
         return response;
     }
-    tenantsList() {
-        const response = axios.get("/tenants");
+    tenantsList(params?: any) {
+        const response = axios.get("/tenants", { params });
+        return response;
+    }
+    tenantDetail(id: string) {
+        const response = axios.get(`/tenants/${id}`);
         return response;
     }
     profile() {
@@ -75,6 +79,54 @@ class AuthApiFetch {
     }
     deleteSavedPet(id: any) {
         const response = axios.delete(`/pets/${id}`);
+        return response;
+    }
+    paymentOrder(payload: any) {
+        const response = axios.post(`/payments/orders`, payload);
+        return response;
+    }
+    paymentVerify(payload: any) {
+        const response = axios.post(`/payments/verify`, payload);
+        return response;
+    }
+    paymentHistory() {
+        const response = axios.get(`/payments/me`);
+        return response;
+    }
+    myBookings() {
+        const response = axios.get(`/bookings/my`);
+        return response;
+    }
+    cancelBookinng(id: any) {
+        const response = axios.patch(`/bookings/${id}/cancel`);
+        return response;
+    }
+    DeleteAccount() {
+        const response = axios.delete(`/user/me`);
+        return response;
+    }
+    shopReviews(id: any) {
+        const response = axios.get(`/reviews/tenant/${id}`);
+        return response;
+    }
+    addReviewNormal(id: any, payload: any) {
+        const response = axios.post(`/reviews/tenant/${id}`, payload);
+        return response;
+    }
+    addReviewBooking(id: any, payload: any) {
+        const response = axios.post(`/reviews/booking/${id}`, payload);
+        return response;
+    }
+    deleteReview(id: any) {
+        const response = axios.delete(`/reviews/${id}`);
+        return response;
+    }
+    updateReview(id: any, payload: any) {
+        const response = axios.patch(`/reviews/${id}`, payload);
+        return response;
+    }
+    uploadsAvatar(payload: any) {
+        const response = multiPartAxiosInstance.post(`/uploads/user/avatar`, payload);
         return response;
     }
 }

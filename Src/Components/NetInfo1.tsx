@@ -148,7 +148,7 @@ const NetInfo1 = () => {
                     {/* Text Section */}
                     <Text style={styles.modalTitle}>Searching for Signal...</Text>
                     <Text style={styles.modalText}>
-                        You’re currently offline. Please check your data or Wi-Fi to keep exploring PetZone.
+                        You’re currently offline. Please check your data or Wi-Fi to keep exploring PawNest.
                     </Text>
 
                     {/* Retry Visual */}
@@ -166,7 +166,7 @@ const NetInfo1 = () => {
 const getStyles = (Theme: any) => StyleSheet.create({
     modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(26, 44, 41, 0.9)', // Custom PetZone dark-teal overlay
+        backgroundColor: 'rgba(26, 44, 41, 0.9)', // Custom PawNest dark-teal overlay
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 24,
@@ -204,7 +204,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: Theme.colors.primary, // PetZone Teal
+        backgroundColor: Theme.colors.primary, // PawNest Teal
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 10,

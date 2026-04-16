@@ -59,21 +59,10 @@ export default function ProfileScreen({ navigation }: Props) {
 
   const menuItems: { id: string; title: string; subtitle: string; icon: IconName; route?: string }[] = [
     { id: '2', title: 'Saved Shops', subtitle: 'Your favorite grooming centers', icon: 'heart', route: 'SavedShops' },
-    { id: '3', title: 'Payment Methods', subtitle: 'Cards, UPI and more', icon: 'offer' },
+    { id: '3', title: 'Payment History', subtitle: 'View your transaction records', icon: 'offer', route: 'PaymentHistory' },
     { id: '7', title: 'Settings', subtitle: 'App preferences and notifications', icon: 'settings', route: 'Settings' },
-    { id: '5', title: 'Admin Login', subtitle: 'For shop owners', icon: 'lock', route: 'AdminLogin' },
-    { id: '6', title: 'About PetZone', subtitle: 'App version & policies', icon: 'explore', route: 'About' },
+    { id: '6', title: 'About PawNest', subtitle: 'App version & policies', icon: 'explore', route: 'About' },
   ];
-
-  const handleLogout = async () => {
-    try {
-      await Keychain.resetGenericPassword();
-      navigation.replace('Login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      navigation.replace('Login');
-    }
-  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -155,10 +144,6 @@ export default function ProfileScreen({ navigation }: Props) {
           ))}
         </View>
 
-        {/* Footer */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </TouchableOpacity>
         <Text style={styles.versionText}>Version 1.2.0 (Stable)</Text>
 
       </ScrollView>
@@ -177,7 +162,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   settingsBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.border + '80' },
   settingsIcon: {},
 
-  scrollContent: { padding: 16, paddingBottom: 10 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
 
   userCard: {
     backgroundColor: Theme.colors.primary, borderRadius: 24, padding: 24,
@@ -223,7 +208,5 @@ const getStyles = (Theme: any) => StyleSheet.create({
   menuSubtitle: { fontSize: 12, color: Theme.colors.textSecondary, marginTop: 2 },
   arrowIcon: { fontSize: 18, color: Theme.colors.textSecondary, fontWeight: '800' },
 
-  logoutBtn: { marginTop: 32, alignItems: 'center', paddingVertical: 12 },
-  logoutText: { color: Theme.colors.secondary, fontSize: 16, fontWeight: '800' },
-  versionText: { textAlign: 'center', fontSize: 12, color: Theme.colors.textSecondary, marginTop: 8 },
+  versionText: { textAlign: 'center', fontSize: 12, color: Theme.colors.textSecondary, marginTop: 24 },
 });

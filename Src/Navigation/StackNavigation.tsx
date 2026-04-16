@@ -21,16 +21,16 @@ import TimeSlotSelectionScreen from '../Screens/TimeSlotSelectionScreen';
 import PaymentScreen from '../Screens/PaymentScreen';
 import BookingConfirmationScreen from '../Screens/BookingConfirmationScreen';
 import UpdateProfileScreen from '../Screens/UpdateProfileScreen';
-import AdminLoginScreen from '../Screens/AdminLoginScreen';
-import AdminDashboardScreen from '../Screens/AdminDashboardScreen';
-import TodaysAppointmentsScreen from '../Screens/TodaysAppointmentsScreen';
-import BlockSlotScreen from '../Screens/BlockSlotScreen';
 import AboutScreen from '../Screens/AboutScreen';
 import SettingsScreen from '../Screens/SettingsScreen';
 import SearchScreen from '../Screens/SearchScreen';
 import SavedShopsScreen from '../Screens/SavedShopsScreen';
 import NotificationScreen from '../Screens/NotificationScreen';
 import PetDetailsScreen from '../Screens/PetDetailsScreen';
+import PaymentHistoryScreen from '../Screens/PaymentHistoryScreen';
+import BookingFailedScreen from '../Screens/BookingFailedScreen';
+import BookingDetailScreen from '../Screens/BookingDetailScreen';
+import HelpCenterScreen from '../Screens/HelpCenterScreen';
 
 import { RootStackParamList } from './types';
 
@@ -56,15 +56,15 @@ export default function StackNavigation() {
       <Stack.Screen name="Payment"             component={PaymentScreen} />
       <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
       <Stack.Screen name="UpdateProfile"       component={UpdateProfileScreen} />
-      <Stack.Screen name="AdminLogin"          component={AdminLoginScreen} />
-      <Stack.Screen name="AdminDashboard"      component={AdminDashboardScreen} />
-      <Stack.Screen name="TodaysAppointments"  component={TodaysAppointmentsScreen} />
-      <Stack.Screen name="BlockSlot"           component={BlockSlotScreen} />
       <Stack.Screen name="About"               component={AboutScreen} />
       <Stack.Screen name="Settings"            component={SettingsScreen} />
       <Stack.Screen name="SavedShops"          component={SavedShopsScreen} />
       <Stack.Screen name="Search"              component={SearchScreen} />
       <Stack.Screen name="Notifications"       component={NotificationScreen} />
+      <Stack.Screen name="PaymentHistory"      component={PaymentHistoryScreen} />
+      <Stack.Screen name="BookingFailed"       component={BookingFailedScreen} />
+      <Stack.Screen name="BookingDetail"       component={BookingDetailScreen} />
+      <Stack.Screen name="HelpCenter"          component={HelpCenterScreen} />
     </Stack.Navigator>
   );
 }

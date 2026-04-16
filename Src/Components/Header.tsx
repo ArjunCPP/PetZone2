@@ -3,7 +3,7 @@
  * Shared top bar used on the Login screen.
  *
  * Props:
- *   showLogo?: boolean  → shows PetZone logo + wordmark (default: true)
+ *   showLogo?: boolean  → shows PawNest logo + wordmark (default: true)
  *   title?: string      → plain text title (used instead of logo)
  *   onBack?: () => void → shows back arrow and calls this on press
  */
@@ -45,7 +45,7 @@ export default function Header({ showLogo = false, title, onBack }: Props) {
           <View style={styles.logoIconPlaceholder}>
             <Text style={styles.pawEmoji}>🐾</Text>
           </View>
-          <Text style={styles.logoText}>PetZone</Text>
+          <Text style={styles.logoText}>PawNest</Text>
         </View>
       ) : (
         <Text style={styles.title}>{title ?? ''}</Text>

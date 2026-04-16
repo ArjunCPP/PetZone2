@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, TextInput, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, TextInput, StatusBar, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -21,9 +21,24 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
   const [email, setEmail] = useState(userData?.email || '');
   const [phone, setPhone] = useState(userData?.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(userData?.avatar?.url || '');
+  const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ visible: true, message, type });
@@ -37,13 +52,45 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
 
     setLoading(true);
     try {
+      if (selectedAsset) {
+        const formData = new FormData();
+        
+        const fileObj = {
+          uri: Platform.OS === 'ios' && !selectedAsset.uri.startsWith('file://') ? `file://${selectedAsset.uri}` : selectedAsset.uri,
+          type: selectedAsset.type || 'image/jpeg',
+          name: selectedAsset.fileName || `avatar_${Date.now()}.jpg`
+        };
+        
+        console.log("Avatar upload payload file obj:", fileObj);
+        formData.append('file', fileObj as any);
+        
+        try {
+          const uploadRes = await authApi.uploadsAvatar(formData);
+          console.log("Upload avatar response:", uploadRes.data);
+          
+          if (uploadRes.data && !uploadRes.data.success) {
+            showToast(uploadRes.data.message || 'Failed to upload image', 'error');
+            setLoading(false);
+            return; // Stop if avatar upload explicitly failed
+          }
+        } catch (uploadError: any) {
+          console.log("Avatar upload via new API failed", uploadError);
+          console.log("Error response API:", uploadError.response?.data);
+          showToast(uploadError.response?.data?.message || 'Failed to upload image due to network error', 'error');
+          setLoading(false);
+          return; // Stop if there's a hard error
+        }
+      }
+
       const payload = {
         name: name.trim(),
         phone: phone.trim(),
-        avatar: {
-          url: avatarUrl,
-          publicId: userData?.avatar?.publicId || ''
-        }
+        ...( !selectedAsset && {
+          avatar: {
+            url: avatarUrl,
+            publicId: userData?.avatar?.publicId || ''
+          }
+        })
       };
 
       const response = await authApi.updateProfile(payload);
@@ -68,10 +115,10 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
   const handleChangeImage = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      includeBase64: true,
-      quality: 0.3,
-      maxWidth: 500,
-      maxHeight: 500,
+      includeBase64: false,
+      quality: 0.5,
+      maxWidth: 800,
+      maxHeight: 800,
     });
 
     if (result.didCancel) {
@@ -80,8 +127,10 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
       showToast('Image picker error: ' + result.errorMessage, 'error');
     } else if (result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      const base64Image = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
-      setAvatarUrl(base64Image);
+      setSelectedAsset(asset);
+      if (asset.uri) {
+        setAvatarUrl(asset.uri);
+      }
     }
   };
 
@@ -89,16 +138,24 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
 
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Icon name="back" size={20} color={Theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Update Profile</Text>
-        <View style={styles.backBtnPlaceholder} />
+        <View style={styles.headerRight} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView 
+        style={styles.flex} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
         {/* Profile Pic Section */}
         <View style={styles.profilePicSection}>
@@ -160,18 +217,17 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
 
         </View>
 
-      </ScrollView>
-
-      {/* Footer CTA */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={Theme.colors.white} />
-          ) : (
-            <Text style={styles.updateBtnText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <View style={styles.footer}>
+            <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color={Theme.colors.white} />
+              ) : (
+                <Text style={styles.updateBtnText}>Save Changes</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Toast
         visible={toast.visible}
@@ -185,11 +241,15 @@ export default function UpdateProfileScreen({ route, navigation }: Props) {
 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: Theme.colors.border },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: Theme.colors.primary + '1A' },
-  backIcon: {},
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: Theme.colors.text },
-  backBtnPlaceholder: { width: 40 },
+  flex: { flex: 1 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background
+  },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.primary + '1A' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text },
+  headerRight: { width: 40 },
 
   scrollContent: { padding: 24, paddingBottom: 100 },
 
@@ -224,8 +284,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   textArea: { textAlignVertical: 'top' },
 
   footer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Theme.colors.white, padding: 16, paddingBottom: 32,
+    backgroundColor: Theme.colors.background, padding: 16, paddingBottom: 32,
     borderTopWidth: 1, borderTopColor: Theme.colors.border
   },
   updateBtn: {

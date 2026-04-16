@@ -18,7 +18,7 @@ export const Toast = ({ visible, message, type = 'info', onHide, duration = 3000
   const translateY = useRef(new Animated.Value(PathY())).current;
 
   function PathY() {
-    return -100;
+    return 100; // Start hidden below
   }
 
   useEffect(() => {
@@ -27,12 +27,12 @@ export const Toast = ({ visible, message, type = 'info', onHide, duration = 3000
         Animated.spring(translateY, {
           toValue: 0,
           useNativeDriver: true,
-          tension: 20,
-          friction: 7,
+          tension: 25,
+          friction: 8,
         }),
         Animated.delay(duration),
         Animated.timing(translateY, {
-          toValue: -100,
+          toValue: 100, // Hide back down
           duration: 300,
           useNativeDriver: true,
         }),
@@ -68,26 +68,27 @@ export const Toast = ({ visible, message, type = 'info', onHide, duration = 3000
 const getStyles = (Theme: any) => StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
+    bottom: 110, // Positioned above the floating tab bar
     alignSelf: 'center',
     backgroundColor: '#222222',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     zIndex: 9999,
+    maxWidth: width - 40,
   },
   text: {
     color: Theme.colors.white,
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
     fontFamily: Theme.typography.fontFamily,
   },

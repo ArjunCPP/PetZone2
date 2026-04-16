@@ -71,7 +71,7 @@ export default function ForgotPasswordScreen({ route, navigation }: Props) {
             </TouchableOpacity>
             <View style={styles.headerTitleGroup}>
               <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-              <Text style={styles.headerTitle}>PetZone</Text>
+              <Text style={styles.headerTitle}>PawNest</Text>
             </View>
             <View style={styles.headerSpacer} />
           </View>

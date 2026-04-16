@@ -1,5 +1,7 @@
 import React, { useMemo,  useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Switch, Alert, ActivityIndicator, Linking } from 'react-native';
+import * as Keychain from 'react-native-keychain';
+import authApi from '../Api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -11,6 +13,60 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export default function SettingsScreen({ navigation }: Props) {
   const { theme: Theme, isDarkMode, toggleTheme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone and you will lose all your data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const response = await authApi.DeleteAccount();
+              if (response.data && response.data.success) {
+                await Keychain.resetGenericPassword();
+                navigation.replace('Login');
+              } else {
+                Alert.alert('Error', response.data?.message || 'Failed to delete account.');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Something went wrong. Please try again.');
+            } finally {
+              setIsDeleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Sign Out', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Keychain.resetGenericPassword();
+              navigation.replace('Login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              navigation.replace('Login');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -19,10 +75,10 @@ export default function SettingsScreen({ navigation }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="back" size={24} color={Theme.colors.text} />
+          <Icon name="back" size={20} color={Theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -34,12 +90,6 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text style={styles.rowTitle}>Change Password</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('SavedShops')}>
-            <Text style={styles.rowTitle}>Saved Shops</Text>
-            <Icon name="heart" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={styles.divider} />
           <TouchableOpacity style={styles.row}>
             <Text style={styles.rowTitle}>Linked Accounts</Text>
             <Text style={styles.rowSubtitle}>Google connected</Text>
@@ -65,16 +115,35 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* Support & Legal */}
         <Text style={styles.sectionTitle}>Support</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row}>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HelpCenter' as any)}>
             <Text style={styles.rowTitle}>Help Center & FAQ</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.row}>
-            <Text style={[styles.rowTitle, { color: Theme.colors.error }]}>Delete Account</Text>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@petzone.com')}>
+            <Text style={styles.rowTitle}>Contact Support</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={handleDeleteAccount}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={Theme.colors.error} />
+            ) : (
+              <Text style={[styles.rowTitle, { color: Theme.colors.error }]}>Delete Account</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Account Actions Section */}
+        <View style={[styles.card, { marginTop: 24, marginBottom: 20 }]}>
+          <TouchableOpacity style={styles.row} onPress={handleLogout}>
+              <Text style={[styles.rowTitle, { color: Theme.colors.primary, textAlign: 'center', flex: 1 }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
@@ -86,28 +155,13 @@ export default function SettingsScreen({ navigation }: Props) {
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.surface },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    justifyContent: 'space-between',
-    backgroundColor: Theme.colors.surface,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Theme.colors.text,
-    fontFamily: Theme.typography.fontFamily,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: { width: 32 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.primary + '1A' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  headerRight: { width: 40 },
 
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   

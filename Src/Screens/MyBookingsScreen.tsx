@@ -1,9 +1,14 @@
-import React, { useMemo,  useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, FlatList, StatusBar } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, FlatList, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../ThemeContext';
 import { SHOP_DETAIL_LOGO } from '../Assets';
 import { Icon } from '../Components/Icon';
+import authApi from '../Api';
+import { useFocusEffect } from '@react-navigation/native';
+import { BookingCardSkeleton } from '../Components/Skeleton';
+import { Toast } from '../Components/Toast';
+import { ConfirmModal } from '../Components/ConfirmModal';
 
 interface Booking {
   id: string;
@@ -15,20 +20,93 @@ interface Booking {
   status: 'Upcoming' | 'Completed' | 'Cancelled';
 }
 
-const BOOKINGS: Booking[] = [
-  { id: '1', shopName: 'Paws & Claws Grooming', service: 'Full Grooming & Spa', date: '24 Oct 2026', time: '11:00 AM', price: 899, status: 'Upcoming' },
-  { id: '2', shopName: 'Pet Spa Indiranagar', service: 'Bath & Dry', date: '15 Oct 2026', time: '02:30 PM', price: 299, status: 'Completed' },
-  { id: '3', shopName: 'Sniff & Scruff', service: 'Nail Trim', date: '10 Oct 2026', time: '10:00 AM', price: 150, status: 'Cancelled' },
-];
-
-export default function MyBookingsScreen() {
+export default function MyBookingsScreen({ navigation }: any) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
+  
   const [activeTab, setActiveTab] = useState<'Upcoming' | 'History'>('Upcoming');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'info' | 'success' | 'error' });
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
 
-  const filteredBookings = BOOKINGS.filter(b => 
-    activeTab === 'Upcoming' ? b.status === 'Upcoming' : b.status !== 'Upcoming'
+  const fetchBookings = async (showRefresh = false) => {
+    try {
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const response = await authApi.myBookings();
+      console.log("My Bookings API Response:", response.data);
+
+      if (response.data?.success) {
+        // Handle double nested data if response.data.data is an object containing data: []
+        const rawData = response.data.data;
+        const bookingsList = Array.isArray(rawData) ? rawData : (rawData?.data && Array.isArray(rawData.data) ? rawData.data : []);
+        setBookings(bookingsList);
+      }
+    } catch (error) {
+      console.log("Error fetching bookings:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleCancel = (booking: any) => {
+    setSelectedBooking(booking);
+    setConfirmVisible(true);
+  };
+
+  const executeCancel = async () => {
+    if (!selectedBooking) return;
+    
+    setConfirmVisible(false);
+    try {
+      setLoading(true);
+      const bookingId = selectedBooking._id || selectedBooking.id;
+      const response = await authApi.cancelBookinng(bookingId);
+      if (response.data?.success) {
+        setToast({ visible: true, message: 'Booking cancelled successfully!', type: 'success' });
+        fetchBookings();
+      } else {
+        setToast({ visible: true, message: response.data?.message || 'Failed to cancel booking', type: 'error' });
+      }
+    } catch (error) {
+      console.log("Error cancelling booking:", error);
+      setToast({ visible: true, message: 'An error occurred while cancelling', type: 'error' });
+    } finally {
+      setLoading(false);
+      setSelectedBooking(null);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [])
   );
+
+  const onRefresh = () => fetchBookings(true);
+
+  const filteredBookings = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
+    
+    let filtered = bookings.filter(b => {
+      const status = b.status?.toUpperCase();
+      const isUpcoming = status === 'UPCOMING' || status === 'CONFIRMED' || status === 'PENDING';
+      return activeTab === 'Upcoming' ? isUpcoming : !isUpcoming;
+    });
+
+    // Sort by date and time
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.scheduledAt).getTime();
+      const dateB = new Date(b.scheduledAt).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [bookings, activeTab, sortOrder]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -37,9 +115,7 @@ export default function MyBookingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Bookings</Text>
-        <TouchableOpacity style={styles.filterBtn}>
-          <Icon name="search" size={20} color={Theme.colors.textSecondary} />
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
       {/* Tabs */}
@@ -58,46 +134,97 @@ export default function MyBookingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {filteredBookings.length > 0 ? (
+      {/* Sort Filter */}
+      <View style={styles.sortFilterContainer}>
+        <Text style={styles.filterLabel}>Sort by Date:</Text>
+        <TouchableOpacity 
+          style={styles.sortToggle} 
+          onPress={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+        >
+          <Text style={styles.sortText}>{sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}</Text>
+          <Icon 
+            name="chevron_down" 
+            size={14} 
+            color={Theme.colors.primary} 
+            style={{ transform: [{ rotate: sortOrder === 'newest' ? '0deg' : '180deg' }] }} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      {loading && !refreshing ? (
+        <ScrollView contentContainerStyle={styles.listContent}>
+           {[1, 2, 3, 4].map((i) => <BookingCardSkeleton key={i} />)}
+        </ScrollView>
+      ) : filteredBookings.length > 0 ? (
         <FlatList
           data={filteredBookings}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item._id || item.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.bookingCard}>
-              <View style={styles.cardHeader}>
-                <Image source={SHOP_DETAIL_LOGO} style={styles.shopLogo} resizeMode="contain" />
-                <View style={styles.shopInfo}>
-                  <Text style={styles.shopName}>{item.shopName}</Text>
-                  <Text style={styles.serviceName}>{item.service}</Text>
-                </View>
-                <View style={[styles.statusBadge, styles[`status${item.status}`]]}>
-                  <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.cardDivider} />
-              
-              <View style={styles.cardFooter}>
-                <View style={styles.dateTimeRow}>
-                  <Icon name="bookings" size={14} color={Theme.colors.textSecondary} />
-                  <Text style={styles.footerText}>{item.date} • {item.time}</Text>
-                </View>
-                <Text style={styles.priceText}>₹{item.price}</Text>
-              </View>
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Theme.colors.primary]} />
+          }
+          renderItem={({ item }) => {
+            const status = item.status?.toUpperCase() || 'PENDING';
+            const isUpcoming = status === 'PENDING' || status === 'CONFIRMED' || status === 'UPCOMING';
+            const statusLabel = isUpcoming ? 'Upcoming' : status === 'COMPLETED' ? 'Completed' : 'Cancelled';
+            
+            // Format date and time from scheduledAt
+            const scheduledDate = new Date(item.scheduledAt);
+            const dateStr = scheduledDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            // 12h rule check
+            const now = new Date();
+            const hoursDiff = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+            const canCancel = hoursDiff >= 12;
 
-              {item.status === 'Upcoming' && (
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.rescheduleBtn}>
-                    <Text style={styles.rescheduleText}>Reschedule</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.cancelBtn}>
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </TouchableOpacity>
+            return (
+              <TouchableOpacity 
+                style={styles.bookingCard}
+                onPress={() => navigation.navigate('BookingDetail', { bookingData: item })}
+              >
+                <View style={styles.cardHeader}>
+                  <Image 
+                    source={item.tenant?.logo?.url ? { uri: item.tenant.logo.url } : SHOP_DETAIL_LOGO} 
+                    style={styles.shopLogo} 
+                    resizeMode="cover" 
+                  />
+                  <View style={styles.shopInfo}>
+                    <Text style={styles.shopName} numberOfLines={1}>{item.tenant?.storeName || 'PawNest Shop'}</Text>
+                    <Text style={styles.serviceName} numberOfLines={1}>{item.serviceDetails?.title || 'Pet Grooming'}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, styles[`status${statusLabel}`]]}>
+                    <Text style={styles.statusText}>{statusLabel.toUpperCase()}</Text>
+                  </View>
                 </View>
-              )}
-            </TouchableOpacity>
-          )}
+                
+                <View style={styles.cardDivider} />
+                
+                <View style={styles.cardFooter}>
+                  <View style={styles.dateTimeRow}>
+                    <Icon name="bookings" size={14} color={Theme.colors.textSecondary} />
+                    <Text style={styles.footerText}>{dateStr} • {timeStr}</Text>
+                  </View>
+                  <View style={styles.durationBadge}>
+                    <Icon name="offer" size={12} color={Theme.colors.primary} />
+                    <Text style={styles.durationText}>{item.serviceDetails?.durationMinutes || 60} Mins</Text>
+                  </View>
+                </View>
+
+                {statusLabel === 'Upcoming' && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                      style={[styles.cancelBookingBtn, !canCancel && { opacity: 0.4, borderColor: Theme.colors.border, backgroundColor: Theme.colors.border + '1A' }]} 
+                      onPress={() => canCancel && handleCancel(item)}
+                      disabled={!canCancel}
+                    >
+                      <Text style={[styles.cancelBookingText, !canCancel && { color: Theme.colors.textSecondary }]}>{canCancel ? 'Cancel Booking' : 'Not Cancellable'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
         />
       ) : (
         <View style={styles.emptyState}>
@@ -106,6 +233,23 @@ export default function MyBookingsScreen() {
           <Text style={styles.emptySubtitle}>You haven't made any bookings yet.</Text>
         </View>
       )}
+
+      <ConfirmModal 
+        visible={confirmVisible}
+        onClose={() => setConfirmVisible(false)}
+        onConfirm={executeCancel}
+        title="Cancel Booking?"
+        message={`Are you sure you want to cancel your booking at ${selectedBooking?.tenant?.storeName || 'the store'}?`}
+        confirmLabel="Yes, Cancel"
+        cancelLabel="Keep Booking"
+      />
+
+      <Toast 
+        visible={toast.visible} 
+        message={toast.message} 
+        type={toast.type} 
+        onHide={() => setToast({ ...toast, visible: false })} 
+      />
     </SafeAreaView>
   );
 }
@@ -160,7 +304,17 @@ const getStyles = (Theme: any) => StyleSheet.create({
   cancelText: { color: '#f43f5e', fontSize: 13, fontWeight: '700' },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIcon: { },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.text },
   emptySubtitle: { fontSize: 14, color: Theme.colors.textSecondary, textAlign: 'center', marginTop: 8 },
+  centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: Theme.colors.textSecondary, fontWeight: '600' },
+  durationBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.primary + '1A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  durationText: { fontSize: 13, fontWeight: '800', color: Theme.colors.primary },
+  headerRight: { width: 40 },
+  sortFilterContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 12 },
+  filterLabel: { fontSize: 12, fontWeight: '700', color: Theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sortToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border },
+  sortText: { fontSize: 12, fontWeight: '700', color: Theme.colors.primary },
+  cancelBookingBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#f43f5e', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f43f5e1A' },
+  cancelBookingText: { color: '#f43f5e', fontSize: 13, fontWeight: '800' },
 });

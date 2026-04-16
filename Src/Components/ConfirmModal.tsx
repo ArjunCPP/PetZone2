@@ -1,0 +1,105 @@
+import React, { useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions } from 'react-native';
+import { useAppTheme } from '../ThemeContext';
+import { Icon } from './Icon';
+
+interface ConfirmModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  type?: 'danger' | 'info';
+}
+
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  visible,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmLabel = 'Yes, Cancel',
+  cancelLabel = 'Go Back',
+  type = 'danger'
+}) => {
+  const { theme: Theme } = useAppTheme();
+  const styles = useMemo(() => getStyles(Theme, type), [Theme, type]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.modalBackdrop} 
+          activeOpacity={1} 
+          onPress={onClose} 
+        />
+        <View style={styles.modalContainer}>
+          <View style={styles.iconContainer}>
+            <Icon 
+              name={type === 'danger' ? 'close' : 'bookings'} 
+              size={32} 
+              color={type === 'danger' ? '#f43f5e' : Theme.colors.primary} 
+            />
+          </View>
+          
+          <Text style={styles.titleText}>{title}</Text>
+          <Text style={styles.messageText}>{message}</Text>
+          
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>{cancelLabel}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
+              <Text style={styles.confirmBtnText}>{confirmLabel}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const getStyles = (Theme: any, type: 'danger' | 'info') => StyleSheet.create({
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  modalContainer: { 
+    width: '85%',
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 20, 
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 10
+  },
+  iconContainer: { 
+    width: 60, height: 60, borderRadius: 30, 
+    backgroundColor: type === 'danger' ? '#FFF5F5' : '#F0F7FF',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16
+  },
+  titleText: { 
+    fontSize: 18, fontWeight: '700', color: '#1A1A1A', 
+    textAlign: 'center', marginBottom: 8 
+  },
+  messageText: { 
+    fontSize: 14, color: '#666666', 
+    textAlign: 'center', lineHeight: 20, marginBottom: 24 
+  },
+  buttonRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  cancelBtn: { 
+    flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#EEEEEE',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF'
+  },
+  cancelBtnText: { color: '#666666', fontSize: 14, fontWeight: '600' },
+  confirmBtn: { 
+    flex: 1, height: 48, borderRadius: 12, 
+    backgroundColor: type === 'danger' ? '#f43f5e' : '#3b82f6',
+    alignItems: 'center', justifyContent: 'center'
+  },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+});

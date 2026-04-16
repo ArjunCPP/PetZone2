@@ -30,7 +30,7 @@ export default function OffersScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>PetZone Offers</Text>
+        <Text style={styles.headerTitle}>PawNest Offers</Text>
         <TouchableOpacity style={styles.historyBtn}>
           <Icon name="clock" size={20} color={Theme.colors.text} />
         </TouchableOpacity>

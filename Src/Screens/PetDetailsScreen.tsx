@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, StatusBar, ActivityIndicator, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -26,20 +26,43 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
     notes: ''
   });
 
+  // Derived species list for UI and logic
+  const availableSpecies = useMemo(() => {
+    const apiSpecies = (params.applicableSpecies && params.applicableSpecies.length > 0)
+      ? params.applicableSpecies
+      : ['dog', 'cat'];
+    return apiSpecies.map(s => s.toLowerCase());
+  }, [params.applicableSpecies]);
+
   const [errors, setErrors] = useState<any>({});
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
 
   const [savedPets, setSavedPets] = useState<any[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [fetchingPets, setFetchingPets] = useState(false);
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
+  const [deletingPetId, setDeletingPetId] = useState<string | null>(null);
   const [isPetModified, setIsPetModified] = useState(false);
 
   const fetchPets = () => {
     setFetchingPets(true);
     authApi.savedPets()
       .then((res) => {
-        console.log("Saved Pets API Response:", res.data.data.data);
-        let petsData = res.data.data.data || [];
+        console.log("Saved Pets API Response:", res.data.data);
+        let petsData = res.data.data || [];
         console.log("Processed Pets Data:", petsData);
         setSavedPets(petsData);
       })
@@ -66,7 +89,7 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
     setIsPetModified(false); // Reset modification flag when a new pet is selected
     setPetForm({
       name: pet.name || '',
-      species: pet.species || 'dog',
+      species: availableSpecies.includes(pet.species?.toLowerCase()) ? pet.species?.toLowerCase() : 'other',
       breed: pet.breed || '',
       age: String(pet.age || ''),
       weight: String(pet.weight || ''),
@@ -78,6 +101,7 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
 
   const handleDeletePet = async (id: string) => {
     try {
+      setDeletingPetId(id);
       // Optimistic/Direct delete
       const res = await authApi.deleteSavedPet(id);
       if (res.data && res.data.success) {
@@ -92,6 +116,8 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
     } catch (error) {
       console.log("Delete error:", error);
       setToast({ visible: true, message: 'Failed to delete pet', type: 'error' });
+    } finally {
+      setDeletingPetId(null);
     }
   };
 
@@ -127,37 +153,13 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
     setLoading(true);
 
     try {
-      // 1. Check if we need to update the saved pet details
-      if (selectedPetId && isPetModified) {
-        try {
-          const updatePayload = {
-            id: selectedPetId,
-            name: petForm.name,
-            species: petForm.species,
-            breed: petForm.breed,
-            age: parseInt(petForm.age) || 0,
-            weight: parseFloat(petForm.weight) || 0,
-            gender: petForm.gender,
-            notes: petForm.notes
-          };
-          console.log("🚀 [Update Pet] Payload:", JSON.stringify(updatePayload, null, 2));
-          const updateRes = await authApi.updateSavedPet(updatePayload);
-          console.log("✅ [Update Pet] Response:", JSON.stringify(updateRes.data, null, 2));
-        } catch (updateErr: any) {
-          console.log("⚠️ [Update Pet] Failed:", updateErr.response?.data || updateErr.message);
-          // We don't block the booking if only the pet update fails, 
-          // but we log it clearly.
-        }
-      }
-
-      // 2. Create the booking
-      const payload = {
+      const payload: any = {
         tenantId: params.tenant,
         serviceId: params.serviceDetails,
         staffId: params.tenant,
         petDetails: {
           name: petForm.name,
-          species: petForm.species,
+          species: petForm.species.toLowerCase(),
           breed: petForm.breed,
           age: parseInt(petForm.age) || 0,
           weight: parseFloat(petForm.weight) || 0,
@@ -166,8 +168,11 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
         },
         scheduledAt: params.time,
         notes: petForm.notes || 'No special instructions',
-        totalAmount: params.price
       };
+
+      if (selectedPetId) {
+        payload.pet = selectedPetId;
+      }
 
       console.log('🚀 [Create Booking] Payload:', JSON.stringify(payload, null, 2));
 
@@ -200,7 +205,7 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
       {/* Header */}
       <View style={styles.navBar}>
         <View style={styles.navLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
             <Icon name="back" size={20} color={Theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.navTitle}>Pet Details</Text>
@@ -210,84 +215,89 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionTitle}>Tell us about your pet</Text>
-        <Text style={styles.sectionSubtitle}>We want to provide the best care for your furry friend.</Text>
+        <Text style={styles.sectionSubtitle}>Help us provide personalized care for your pet.</Text>
 
         {/* Saved Pets Selection */}
-        <View style={styles.savedSection}>
-          <Text style={styles.label}>Choose a Saved Pet</Text>
-          {fetchingPets ? (
-            <PetCardSkeleton />
-          ) : savedPets.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.savedList}
-            >
-              {savedPets.map((pet) => {
-                const isSelected = selectedPetId === pet._id;
-                return (
-                  <TouchableOpacity
-                    key={pet._id || Math.random().toString()}
-                    style={[styles.petCard, isSelected && styles.petCardActive]}
-                    onPress={() => handleSelectSavedPet(pet)}
-                  >
-                    <View style={[styles.petAvatar, isSelected && styles.petAvatarActive]}>
-                      <Icon
-                        name={pet.species === 'dog' ? 'dog' : 'pets'}
-                        size={20}
-                        color={isSelected ? Theme.colors.white : Theme.colors.primary}
-                      />
-                    </View>
-                    <Text
-                      style={[styles.petName, isSelected && styles.petNameActive]}
-                      numberOfLines={1}
-                    >
-                      {pet.name || 'Unnamed'}
-                    </Text>
-                    {isSelected && (
-                      <View style={styles.checkBadge}>
-                        <Icon name="check" size={8} color={Theme.colors.white} />
-                      </View>
-                    )}
-
-                    <TouchableOpacity
-                      style={styles.deleteBtn}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleDeletePet(pet._id);
-                      }}
-                    >
-                      <Icon name="close" size={10} color={Theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })}
-
-              <TouchableOpacity
-                style={styles.addPetCard}
-                onPress={() => {
-                  setSelectedPetId(null);
-                  setPetForm({
-                    name: '',
-                    species: 'dog',
-                    breed: '',
-                    age: '',
-                    weight: '',
-                    gender: 'male',
-                    notes: ''
-                  });
-                }}
+        {(fetchingPets || savedPets.length > 0) && (
+          <View style={styles.savedSection}>
+            <Text style={styles.label}>Choose a Saved Pet</Text>
+            {fetchingPets ? (
+              <PetCardSkeleton />
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.savedList}
               >
-                <View style={styles.addAvatar}>
-                  <Text style={{ fontSize: 24, color: Theme.colors.textSecondary, fontWeight: '300' }}>+</Text>
-                </View>
-                <Text style={styles.addText}>New</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          ) : (
-            <Text style={{ fontSize: 13, color: Theme.colors.textSecondary, fontStyle: 'italic', marginBottom: 10 }}>No saved pets found.</Text>
-          )}
-        </View>
+                <TouchableOpacity
+                  style={styles.addPetCard}
+                  onPress={() => {
+                    setSelectedPetId(null);
+                    setPetForm({
+                      name: '',
+                      species: 'dog',
+                      breed: '',
+                      age: '',
+                      weight: '',
+                      gender: 'male',
+                      notes: ''
+                    });
+                  }}
+                >
+                  <View style={styles.addAvatar}>
+                    <Text style={{ fontSize: 24, color: Theme.colors.textSecondary, fontWeight: '300' }}>+</Text>
+                  </View>
+                  <Text style={styles.addText}>New</Text>
+                </TouchableOpacity>
+
+                {savedPets.map((pet) => {
+                  const isSelected = selectedPetId === pet._id;
+                  return (
+                    <TouchableOpacity
+                      key={pet._id || Math.random().toString()}
+                      style={[styles.petCard, isSelected && styles.petCardActive]}
+                      onPress={() => handleSelectSavedPet(pet)}
+                    >
+                      <View style={[styles.petAvatar, isSelected && styles.petAvatarActive]}>
+                        <Icon
+                          name={pet.species === 'dog' ? 'dog' : 'pets'}
+                          size={20}
+                          color={isSelected ? Theme.colors.white : Theme.colors.primary}
+                        />
+                      </View>
+                      <Text
+                        style={[styles.petName, isSelected && styles.petNameActive]}
+                        numberOfLines={1}
+                      >
+                        {pet.name || 'Unnamed'}
+                      </Text>
+                      {isSelected && (
+                        <View style={styles.checkBadge}>
+                          <Icon name="check" size={8} color={Theme.colors.white} />
+                        </View>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.deleteBtn}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDeletePet(pet._id);
+                        }}
+                        disabled={deletingPetId === pet._id}
+                      >
+                        {deletingPetId === pet._id ? (
+                          <ActivityIndicator size={10} color={Theme.colors.primary} />
+                        ) : (
+                          <Icon name="close" size={10} color={Theme.colors.textSecondary} />
+                        )}
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
 
         {/* Pet Name */}
         <View style={styles.inputGroup}>
@@ -296,25 +306,48 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
             {errors.name && <Text style={styles.errorText}>Required</Text>}
           </View>
           <TextInput
-            style={[styles.input, errors.name && styles.inputError]}
+            style={[styles.input, errors.name && styles.inputError, selectedPetId && { opacity: 0.7, backgroundColor: '#F9FAFB' }]}
             placeholder="e.g. Max"
             value={petForm.name}
             onChangeText={(txt) => handleFieldChange('name', txt)}
+            editable={!selectedPetId}
           />
         </View>
 
         {/* Species Selection */}
         <View style={styles.inputGroup}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Species*</Text>
-            {errors.species && <Text style={styles.errorText}>Required</Text>}
+          <Text style={styles.label}>Species*</Text>
+          <View style={styles.row}>
+            {(() => {
+              const apiSpecies = (params.applicableSpecies && params.applicableSpecies.length > 0)
+                ? params.applicableSpecies
+                : ['dog', 'cat'];
+
+              const speciesList = apiSpecies.map(s => ({
+                id: s.toLowerCase(),
+                label: s.charAt(0).toUpperCase() + s.slice(1),
+                icon: s.toLowerCase() === 'dog' ? 'dog' : 'pets'
+              }));
+
+              return speciesList.map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.typeChip, petForm.species === s.id && styles.typeChipActive, selectedPetId && { opacity: 0.8 }]}
+                  onPress={() => !selectedPetId && handleFieldChange('species', s.id)}
+                >
+                  <Icon
+                    name={s.icon as any}
+                    size={16}
+                    color={petForm.species === s.id ? Theme.colors.white : Theme.colors.primary}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.typeChipText, petForm.species === s.id && styles.typeChipTextActive]}>
+                    {s.label}
+                  </Text>
+                </TouchableOpacity>
+              ));
+            })()}
           </View>
-          <TextInput
-            style={[styles.input, errors.species && styles.inputError]}
-            placeholder="e.g. Dog, Cat, Bird"
-            value={petForm.species}
-            onChangeText={(txt) => handleFieldChange('species', txt)}
-          />
         </View>
 
         {/* Breed */}
@@ -324,10 +357,11 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
             {errors.breed && <Text style={styles.errorText}>Required</Text>}
           </View>
           <TextInput
-            style={[styles.input, errors.breed && styles.inputError]}
+            style={[styles.input, errors.breed && styles.inputError, selectedPetId && { opacity: 0.7, backgroundColor: '#F9FAFB' }]}
             placeholder="e.g. Golden Retriever"
             value={petForm.breed}
             onChangeText={(txt) => handleFieldChange('breed', txt)}
+            editable={!selectedPetId}
           />
         </View>
 
@@ -338,11 +372,12 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
               {errors.age && <Text style={styles.errorText}>!</Text>}
             </View>
             <TextInput
-              style={[styles.input, errors.age && styles.inputError]}
+              style={[styles.input, errors.age && styles.inputError, selectedPetId && { opacity: 0.7, backgroundColor: '#F9FAFB' }]}
               placeholder="e.g. 4"
               keyboardType="numeric"
               value={petForm.age}
               onChangeText={(txt) => handleFieldChange('age', txt)}
+              editable={!selectedPetId}
             />
           </View>
           <View style={{ width: 15 }} />
@@ -352,11 +387,12 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
               {errors.weight && <Text style={styles.errorText}>!</Text>}
             </View>
             <TextInput
-              style={[styles.input, errors.weight && styles.inputError]}
+              style={[styles.input, errors.weight && styles.inputError, selectedPetId && { opacity: 0.7, backgroundColor: '#F9FAFB' }]}
               placeholder="e.g. 12.5"
               keyboardType="numeric"
               value={petForm.weight}
               onChangeText={(txt) => handleFieldChange('weight', txt)}
+              editable={!selectedPetId}
             />
           </View>
         </View>
@@ -368,8 +404,8 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
             {['male', 'female'].map((g) => (
               <TouchableOpacity
                 key={g}
-                style={[styles.chip, petForm.gender === g && styles.chipActive]}
-                onPress={() => setPetForm({ ...petForm, gender: g })}
+                style={[styles.chip, petForm.gender === g && styles.chipActive, selectedPetId && { opacity: 0.8 }]}
+                onPress={() => !selectedPetId && setPetForm({ ...petForm, gender: g })}
               >
                 <Text style={[styles.chipText, petForm.gender === g && styles.chipTextActive]}>
                   {g.toUpperCase()}
@@ -383,12 +419,13 @@ export default function PetDetailsScreen({ route, navigation }: Props) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Extra Notes</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, selectedPetId && { opacity: 0.7, backgroundColor: '#F9FAFB' }]}
             placeholder="Special instructions or allergies..."
             multiline
             numberOfLines={4}
             value={petForm.notes}
             onChangeText={(txt) => handleFieldChange('notes', txt)}
+            editable={!selectedPetId}
           />
         </View>
 
@@ -425,27 +462,27 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   navLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 38, height: 38, borderRadius: 19,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: Theme.colors.primary + '1A'
   },
-  navTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  navTitle: { fontSize: 17, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
   navRight: { width: 40 },
 
-  scrollContent: { padding: 24, paddingBottom: 40 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: Theme.colors.text, marginBottom: 6, fontFamily: Theme.typography.fontFamily },
-  sectionSubtitle: { fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 28, fontWeight: '500', lineHeight: 18, fontFamily: Theme.typography.fontFamily },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.text, marginBottom: 4, fontFamily: Theme.typography.fontFamily },
+  sectionSubtitle: { fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 24, fontWeight: '500', lineHeight: 18, fontFamily: Theme.typography.fontFamily },
 
-  inputGroup: { marginBottom: 24 },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  label: { fontSize: 12, marginBottom: 10, fontWeight: '700', color: Theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1, fontFamily: Theme.typography.fontFamily },
+  inputGroup: { marginBottom: 18 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  label: { fontSize: 11, marginBottom: 8, fontWeight: '700', color: Theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: Theme.typography.fontFamily },
   errorText: { fontSize: 10, fontWeight: '800', color: Theme.colors.error, textTransform: 'uppercase' },
   input: {
     backgroundColor: Theme.colors.white,
-    borderRadius: Theme.roundness.default,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    fontSize: 15,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
     color: Theme.colors.text,
     borderWidth: 1,
     borderColor: Theme.colors.border,
@@ -454,35 +491,56 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   inputError: { borderColor: Theme.colors.error },
   textArea: {
-    height: 100,
+    height: 80,
     textAlignVertical: 'top'
   },
-  row: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   chip: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 15,
-    backgroundColor: '#f5f5f5',
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F7F8FA',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
     alignItems: 'center',
     marginRight: 10
   },
   chipActive: {
     backgroundColor: Theme.colors.primary,
+    borderColor: Theme.colors.primary,
   },
-  chipText: { fontSize: 12, fontWeight: '800', color: '#888' },
+  chipText: { fontSize: 11, fontWeight: '800', color: '#8E9196' },
   chipTextActive: { color: Theme.colors.white },
 
+  typeChip: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F7F8FA',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    alignItems: 'center',
+    marginRight: 10
+  },
+  typeChipActive: {
+    backgroundColor: Theme.colors.primary,
+    borderColor: Theme.colors.primary,
+  },
+  typeChipText: { fontSize: 11, fontWeight: '800', color: '#8E9196' },
+  typeChipTextActive: { color: Theme.colors.white },
+
   footer: {
-    padding: 24,
+    padding: 20,
     backgroundColor: Theme.colors.white,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border,
-    paddingBottom: 34, // Extra padding for safe area logic if not using inset
+    paddingBottom: 30,
   },
   confirmBtn: {
     backgroundColor: Theme.colors.primary,
-    height: 56,
-    borderRadius: Theme.roundness.large,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Theme.colors.primary,
@@ -494,13 +552,13 @@ const getStyles = (Theme: any) => StyleSheet.create({
   confirmBtnText: { color: Theme.colors.white, fontSize: 16, fontWeight: '800', fontFamily: Theme.typography.fontFamily },
 
   // Saved Pets Styles
-  savedSection: { marginBottom: 32 },
-  savedList: { paddingRight: 24, paddingVertical: 8 },
+  savedSection: { marginBottom: 28 },
+  savedList: { paddingRight: 20, paddingVertical: 4, gap: 10 },
   petCard: {
-    width: 76,
-    paddingVertical: 12,
+    width: 72,
+    paddingVertical: 10,
     paddingHorizontal: 4,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: Theme.colors.white,
     borderWidth: 1,
     borderColor: '#F0F0F0',
@@ -518,19 +576,19 @@ const getStyles = (Theme: any) => StyleSheet.create({
     shadowRadius: 8
   },
   petAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F5F7FA',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8
+    marginBottom: 6
   },
   petAvatarActive: {
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   petName: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#444',
     textAlign: 'center',
@@ -558,9 +616,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#F9F9F9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -568,9 +626,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
     borderColor: '#F0F0F0'
   },
   addPetCard: {
-    width: 76,
-    paddingVertical: 12,
-    borderRadius: 16,
+    width: 72,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     borderStyle: 'dashed',
@@ -578,21 +636,21 @@ const getStyles = (Theme: any) => StyleSheet.create({
     justifyContent: 'center'
   },
   addAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8
+    marginBottom: 6
   },
   addText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#999',
     textTransform: 'uppercase'
   },
   skeletonCard: { backgroundColor: '#F0F0F0', borderWidth: 0 },
   skeletonAvatar: { backgroundColor: '#E0E0E0' },
-  skeletonName: { width: 40, height: 8, borderRadius: 4, backgroundColor: '#E0E0E0' }
+  skeletonName: { width: 36, height: 8, borderRadius: 4, backgroundColor: '#E0E0E0' }
 });

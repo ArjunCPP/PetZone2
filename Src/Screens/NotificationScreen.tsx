@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useMemo, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
@@ -7,7 +7,7 @@ import { Icon } from '../Components/Icon';
 const DEMO_NOTIFICATIONS = [
   {
     id: '1',
-    title: 'Welcome to PetZone! 🐾',
+    title: 'Welcome to PawNest! 🐾',
     message: 'We are excited to help you care for your furry friends. Explore top-rated grooming and spa services near you.',
     time: '2 hours ago',
     type: 'welcome',
@@ -38,6 +38,20 @@ export default function NotificationScreen({ navigation }: any) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
 
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
+
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.notificationCard}>
       <View style={styles.iconWrapper}>
@@ -57,13 +71,15 @@ export default function NotificationScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.white} />
       
-      {/* Normal Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="back" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 44 }} />
+      {/* Header (TimeSlot Style) */}
+      <View style={styles.navBar}>
+        <View style={styles.navLeft}>
+          <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
+            <Icon name="back" size={20} color={Theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Notifications</Text>
+        </View>
+        <View style={styles.navRight} />
       </View>
 
       <FlatList
@@ -85,24 +101,21 @@ export default function NotificationScreen({ navigation }: any) {
 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
-  header: { 
-    height: 64,
-    backgroundColor: Theme.colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0'
+  navBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.white
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.text },
-  backBtn: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    backgroundColor: '#F7F8FA',
+  navLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  iconBtn: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
     alignItems: 'center', 
-    justifyContent: 'center' 
+    justifyContent: 'center', 
+    backgroundColor: Theme.colors.primary + '1A' 
   },
   listContent: { padding: 16, gap: 12 },
   notificationCard: { 

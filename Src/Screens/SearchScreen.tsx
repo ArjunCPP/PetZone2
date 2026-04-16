@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, StatusBar, Dimensions, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
 import { SearchField } from '../Components/SearchField';
+import ShopCard from '../Components/ShopCard';
 import authApi from '../Api';
 import { HOME_GROOMING_SHOP } from '../Assets';
 
@@ -13,6 +14,20 @@ export default function SearchScreen({ navigation }: any) {
   const [searchText, setSearchText] = useState('');
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
 
   useEffect(() => {
     fetchShops();
@@ -37,36 +52,24 @@ export default function SearchScreen({ navigation }: any) {
   );
 
   const renderShopItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      activeOpacity={0.9}
-      onPress={() => navigation.navigate('ShopDetail', { shopId: item.id || item._id, shopDetails: item })}
-    >
-      <Image 
-        source={item.logo?.url ? { uri: item.logo.url } : HOME_GROOMING_SHOP} 
-        style={styles.cardImage}
+    <View style={styles.gridWrapper}>
+      <ShopCard
+        variant="grid"
+        name={item.storeName}
+        distance={item.address?.city || 'Nearby'}
+        rating={4.8}
+        tags={item.tags || item.amenities || ['Pet Care']}
+        image={item.logo?.url ? { uri: item.logo.url } : HOME_GROOMING_SHOP}
+        onBook={() => navigation.navigate('ShopDetail', { shopId: item.id || item._id, shopDetails: item })}
       />
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardName} numberOfLines={1}>{item.storeName}</Text>
-        <Text style={styles.cardAddress} numberOfLines={1}>{item.address?.city || 'Nearby'}</Text>
-        <View style={styles.cardFooter}>
-          <View style={styles.ratingBox}>
-            <Icon name="star" size={14} color="#FFD700" />
-            <Text style={styles.ratingText}>4.8</Text>
-          </View>
-          <Text style={styles.viewText}>View Details</Text>
-        </View>
-      </View>
-      <View style={styles.arrowBox}>
-        <Icon name="chevron_right" size={20} color={Theme.colors.border} />
-      </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={Theme.isDark ? "light-content" : "dark-content"} backgroundColor={Theme.colors.white} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Icon name="back" size={20} color={Theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.searchWrapper}>
@@ -123,30 +126,16 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   searchWrapper: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { padding: 16, gap: 16 },
-  card: { 
+  listContent: { 
+    padding: 16, 
     flexDirection: 'row', 
-    backgroundColor: Theme.colors.white, 
-    borderRadius: 20, 
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between' 
   },
-  cardImage: { width: 80, height: 80, borderRadius: 16, backgroundColor: '#F0F0F0' },
-  cardInfo: { flex: 1, marginLeft: 16, gap: 4 },
-  cardName: { fontSize: 17, fontWeight: '800', color: '#1A1C1E' },
-  cardAddress: { fontSize: 13, color: '#8E9196', fontWeight: '500' },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 },
-  ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { fontSize: 13, fontWeight: '700', color: '#1A1C1E' },
-  viewText: { fontSize: 12, fontWeight: '700', color: Theme.colors.primary },
-  arrowBox: { paddingLeft: 8 },
-  emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
+  gridWrapper: {
+    width: (Dimensions.get('window').width - 44) / 2,
+    marginBottom: 16,
+  },
+  emptyState: { alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 100 },
   emptyText: { marginTop: 12, color: Theme.colors.textSecondary, fontSize: 15, fontWeight: '500' }
 });

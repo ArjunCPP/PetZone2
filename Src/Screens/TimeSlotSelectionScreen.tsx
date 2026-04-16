@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, FlatList, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, FlatList, ActivityIndicator, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -11,10 +11,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'TimeSlotSelection'>;
 
 interface DateItem { id: string; day: string; date: number; month: string; fullDate: string; isClosed: boolean; }
 interface DateItem { id: string; day: string; date: number; month: string; fullDate: string; isClosed: boolean; }
-interface SlotItem { 
-  id: string; 
+interface SlotItem {
+  id: string;
   time: string; // Original time (e.g. ISO or HH:mm)
-  displayTime: string; 
+  displayTime: string;
   isBlocked: boolean;
   isBooked: boolean;
   isFull: boolean;
@@ -69,6 +69,20 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
   const [slots, setSlots] = useState<SlotItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('MainTabs');
+    }
+    return true;
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => backHandler.remove();
+  }, [handleBack]);
+
   const selectedDate = useMemo(() => dates.find(d => d.id === selectedDateId), [dates, selectedDateId]);
   const selectedSlot = slots.find(s => s.isSelected);
 
@@ -97,14 +111,17 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
         hour12: true
       });
 
+      const isAvailable = slot.availability === 'AVAILABLE';
+      const isBlocked = slot.availability === 'BLOCKED';
+
       return {
         id: slot.time, // Using the time string as unique ID
         time: slot.time,
         displayTime: displayTime,
-        isBlocked: slot.isBlocked ?? false,
-        isBooked: slot.isBooked ?? false,
+        isBlocked: isBlocked,
+        isBooked: slot.isBooked ?? false, // Keep existing check if available
         isFull: slot.isFull ?? false,
-        isAvailable: slot.isAvailable ?? true,
+        isAvailable: isAvailable,
         isSelected: false
       };
     });
@@ -161,7 +178,7 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
       {/* Normal Header like ShopDetail */}
       <View style={styles.navBar}>
         <View style={styles.navLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
             <Icon name="back" size={20} color={Theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.navTitle}>{serviceTitle}</Text>
@@ -224,6 +241,22 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
         {/* Slot Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Available Slots</Text>
+
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#E0E0E0' }]} />
+              <Text style={styles.legendText}>Available</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: Theme.colors.primary }]} />
+              <Text style={styles.legendText}>Selected</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#FFEBEE', borderWidth: 1, borderColor: '#FFCDD2' }]} />
+              <Text style={styles.legendText}>Booked</Text>
+            </View>
+          </View>
+
           {isLoading ? (
             <SlotSkeleton />
           ) : (
@@ -239,7 +272,7 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
                 if (isSelected) {
                   cardStyle.push(styles.slotCardSelected);
                   textStyle.push(styles.slotTimeSelected);
-                } else if (slot.isBooked) {
+                } else if (slot.isBooked || slot.isBlocked || !slot.isAvailable) {
                   cardStyle.push(styles.slotCardBooked);
                   textStyle.push(styles.slotTimeBooked);
                   statusLabel = 'Booked';
@@ -247,13 +280,6 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
                   cardStyle.push(styles.slotCardFull);
                   textStyle.push(styles.slotTimeFull);
                   statusLabel = 'Full';
-                } else if (slot.isBlocked) {
-                  cardStyle.push(styles.slotCardBlocked);
-                  textStyle.push(styles.slotTimeBlocked);
-                  statusLabel = 'Blocked';
-                } else if (!slot.isAvailable) {
-                  cardStyle.push(styles.slotCardUnavailable);
-                  textStyle.push(styles.slotTimeUnavailable);
                 }
 
                 return (
@@ -265,12 +291,12 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
                     style={cardStyle}
                   >
                     <View style={styles.slotContent}>
-                      {slot.isBlocked && <Icon name="lock" size={12} color="#757575" style={{marginRight: 4}} />}
+                      {slot.isBlocked && <Icon name="lock" size={12} color="#757575" style={{ marginRight: 4 }} />}
                       <Text style={textStyle}>{slot.displayTime}</Text>
                     </View>
-                    
+
                     {statusLabel !== '' && !isSelected && (
-                      <Text style={[styles.statusMiniLabel, {color: (textStyle[textStyle.length-1] as any).color || '#444'}]}>
+                      <Text style={[styles.statusMiniLabel, { color: (textStyle[textStyle.length - 1] as any).color || '#444' }]}>
                         {statusLabel}
                       </Text>
                     )}
@@ -287,31 +313,6 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        {/* Legend */}
-        {!isLoading && (
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#E0E0E0' }]} />
-              <Text style={styles.legendText}>Available</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: Theme.colors.primary }]} />
-              <Text style={styles.legendText}>Selected</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#FFEBEE' }]} />
-              <Text style={styles.legendText}>Booked</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#FFF3E0' }]} />
-              <Text style={styles.legendText}>Full</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#F5F5F5' }]} />
-              <Text style={styles.legendText}>Blocked</Text>
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* Sticky Footer */}
@@ -337,6 +338,7 @@ export default function TimeSlotSelectionScreen({ route, navigation }: Props) {
             serviceTitle: route.params.serviceTitle,
             date: selectedDate?.fullDate || '',
             time: selectedSlot?.id || '',
+            applicableSpecies: route.params.applicableSpecies,
             price: price
           })}
         >
@@ -360,30 +362,30 @@ const getStyles = (Theme: any) => StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.primary + '1A' },
   navTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
 
-  scrollContent: { paddingBottom: 160 },
-  section: { padding: 20 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1A1C1E', marginBottom: 16 },
+  scrollContent: { paddingBottom: 140 },
+  section: { padding: 16, paddingBottom: 24 },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1A1C1E', marginBottom: 12 },
 
-  dateList: { paddingRight: 20 },
+  dateList: { paddingRight: 16 },
   dateCard: {
-    width: 80, height: 90, borderRadius: 18,
+    width: 65, height: 75, borderRadius: 14,
     backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#F0F0F0',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12
+    alignItems: 'center', justifyContent: 'center', marginRight: 10
   },
-  dateCardSelected: { backgroundColor: Theme.colors.primary, borderColor: Theme.colors.primary, elevation: 6, shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
-  dateDay: { fontSize: 11, fontWeight: '700', color: '#8E9196', marginBottom: 4 },
-  dateNum: { fontSize: 20, fontWeight: '900', color: '#1A1C1E' },
-  dateMonth: { fontSize: 11, fontWeight: '700', color: '#8E9196', marginTop: 2 },
+  dateCardSelected: { backgroundColor: Theme.colors.primary, borderColor: Theme.colors.primary, elevation: 4, shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6 },
+  dateDay: { fontSize: 10, fontWeight: '700', color: '#8E9196', marginBottom: 2 },
+  dateNum: { fontSize: 18, fontWeight: '900', color: '#1A1C1E' },
+  dateMonth: { fontSize: 10, fontWeight: '700', color: '#8E9196', marginTop: 1 },
   dateTextSelected: { color: Theme.colors.white },
   dateCardDisabled: { opacity: 0.6, backgroundColor: '#F0F0F0' },
   dateTextDisabled: { color: '#B0B0B0' },
-  closedBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: '#FFEDED', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
-  closedText: { fontSize: 6, fontWeight: '900', color: '#FF5252', textTransform: 'uppercase' },
+  closedBadge: { position: 'absolute', top: 3, right: 3, backgroundColor: '#FFEDED', paddingHorizontal: 3, paddingVertical: 1, borderRadius: 3 },
+  closedText: { fontSize: 5, fontWeight: '900', color: '#FF5252', textTransform: 'uppercase' },
 
-  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slotCard: {
-    width: '46.5%', height: 50,
-    backgroundColor: Theme.colors.white, borderRadius: 10,
+    width: '48%', height: 42,
+    backgroundColor: Theme.colors.white, borderRadius: 8,
     borderWidth: 1, borderColor: '#EBEBEB',
     alignItems: 'center', justifyContent: 'center',
   },
@@ -392,39 +394,39 @@ const getStyles = (Theme: any) => StyleSheet.create({
   slotCardBooked: { backgroundColor: '#FFEBEE', borderColor: '#FFCDD2' },
   slotCardFull: { backgroundColor: '#FFF3E0', borderColor: '#FFE0B2' },
   slotCardBlocked: { backgroundColor: '#F5F5F5', borderColor: '#E0E0E0' },
-  slotTime: { fontSize: 13, fontWeight: '700', color: '#444' },
+  slotTime: { fontSize: 12, fontWeight: '700', color: '#444' },
   slotTimeSelected: { color: Theme.colors.white },
   slotTimeUnavailable: { textDecorationLine: 'line-through', color: '#BCBCBC' },
   slotTimeBooked: { color: '#D32F2F' },
   slotTimeFull: { color: '#E65100' },
   slotTimeBlocked: { color: '#757575' },
   slotContent: { flexDirection: 'row', alignItems: 'center' },
-  statusMiniLabel: { fontSize: 9, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
-  slotCheck: { position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: Theme.colors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: Theme.colors.primary },
+  statusMiniLabel: { fontSize: 8, fontWeight: '800', marginTop: 1, textTransform: 'uppercase' },
+  slotCheck: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: Theme.colors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: Theme.colors.primary },
 
   skeletonCard: { backgroundColor: '#EBEBEB', borderWidth: 0, opacity: 0.5 },
 
-  legendRow: { flexDirection: 'row', paddingHorizontal: 24, gap: 20, marginTop: 10 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 12, fontWeight: '700', color: '#8E9196' },
+  legendRow: { flexDirection: 'row', gap: 12, marginBottom: 15 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, fontWeight: '700', color: '#8E9196' },
 
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Theme.colors.white, padding: 20, paddingBottom: 34,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 20,
+    backgroundColor: Theme.colors.white, padding: 16, paddingBottom: 24,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 15,
     borderTopWidth: 1, borderTopColor: '#F0F0F0'
   },
-  footerInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  footerLabel: { fontSize: 10, fontWeight: '900', color: '#A0A3A8', letterSpacing: 1, marginBottom: 4 },
-  footerValue: { fontSize: 14, fontWeight: '800', color: '#1A1C1E' },
+  footerInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  footerLabel: { fontSize: 9, fontWeight: '900', color: '#A0A3A8', letterSpacing: 0.8, marginBottom: 2 },
+  footerValue: { fontSize: 13, fontWeight: '700', color: '#1A1C1E' },
   footerPriceCol: { alignItems: 'flex-end' },
-  footerPrice: { fontSize: 22, fontWeight: '900', color: Theme.colors.primary },
+  footerPrice: { fontSize: 20, fontWeight: '900', color: Theme.colors.primary },
   payBtn: {
-    width: '100%', height: 60, backgroundColor: Theme.colors.primary,
-    borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
-    shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8
+    width: '100%', height: 50, backgroundColor: Theme.colors.primary,
+    borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6
   },
-  payBtnText: { color: Theme.colors.white, fontSize: 17, fontWeight: '800' },
+  payBtnText: { color: Theme.colors.white, fontSize: 16, fontWeight: '800' },
 });

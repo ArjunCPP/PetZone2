@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
+import { useLocation } from '../LocationContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Location'>;
 
@@ -18,8 +19,15 @@ export default function LocationScreen({ navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const [searchText, setSearchText] = useState('San Francisco, CA');
+  const { refreshLocation, setUserLocationManually } = useLocation();
 
-  const handleLocationSet = () => {
+  const handleFetchCurrentLocation = async () => {
+    await refreshLocation();
+    navigation.navigate('MainTabs');
+  };
+
+  const handleManualSelect = (address: string) => {
+    setUserLocationManually(address);
     navigation.navigate('MainTabs');
   };
 
@@ -57,14 +65,14 @@ export default function LocationScreen({ navigation }: Props) {
           <View style={styles.textSection}>
             <Text style={styles.headline}>Where are you located?</Text>
             <Text style={styles.subtitle}>
-              Allow PetZone to access your location to find pets and friends nearby.
+              Allow PawNest to access your location to find pets and friends nearby.
             </Text>
           </View>
 
           {/* Actions Section */}
           <View style={styles.actionsSection}>
             {/* Primary Action */}
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleLocationSet} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleFetchCurrentLocation} activeOpacity={0.85}>
               <Icon name="explore" size={20} color={Theme.colors.white} />
               <Text style={styles.primaryBtnText}>Use My Current Location</Text>
             </TouchableOpacity>
@@ -96,7 +104,7 @@ export default function LocationScreen({ navigation }: Props) {
                   <TouchableOpacity
                     key={item.id}
                     style={[styles.suggestionRow, index === SUGGESTIONS.length - 1 && styles.lastSuggestionRow]}
-                    onPress={handleLocationSet}
+                    onPress={() => handleManualSelect(item.city + ', ' + item.country)}
                   >
                     <Icon name="location" size={20} color={Theme.colors.textSecondary} />
                     <View>

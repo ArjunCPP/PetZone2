@@ -24,10 +24,10 @@ export default function AboutScreen({ navigation }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="back" size={24} color={Theme.colors.text} />
+          <Icon name="back" size={20} color={Theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>About PetZone</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>About PawNest</Text>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -37,7 +37,7 @@ export default function AboutScreen({ navigation }: Props) {
           <View style={styles.logoContainer}>
             <Image source={PETZONE_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
-          <Text style={styles.appName}>PetZone</Text>
+          <Text style={styles.appName}>PawNest</Text>
           <Text style={styles.appVersion}>Version 1.2.0</Text>
           <Text style={styles.appDescription}>
             The ultimate platform to book grooming, spa treatments, and complete care for your best furry friends. We bring the best professionals directly to your fingertips.
@@ -56,11 +56,6 @@ export default function AboutScreen({ navigation }: Props) {
             <Text style={styles.rowTitle}>Privacy Policy</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity style={styles.row}>
-            <Text style={styles.rowTitle}>Licenses</Text>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
         </View>
 
         {/* Social Section */}
@@ -75,19 +70,9 @@ export default function AboutScreen({ navigation }: Props) {
             </View>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity style={styles.row} onPress={() => handleLink('mailto:support@petzone.com')}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.primary + '1A' }]}>
-                <Icon name="explore" size={16} color={Theme.colors.primary} />
-              </View>
-              <Text style={styles.rowTitle}>Contact Support</Text>
-            </View>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
         </View>
 
-        <Text style={styles.footerText}>© 2026 PetZone Inc. All rights reserved.</Text>
+        <Text style={styles.footerText}>© 2026 PawNest Inc. All rights reserved.</Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -97,28 +82,13 @@ export default function AboutScreen({ navigation }: Props) {
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.surface },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    justifyContent: 'space-between',
-    backgroundColor: Theme.colors.surface,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Theme.colors.text,
-    fontFamily: Theme.typography.fontFamily,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: { width: 32 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.primary + '1A' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
+  headerRight: { width: 40 },
 
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   
