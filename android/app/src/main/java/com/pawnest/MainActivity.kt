@@ -1,4 +1,4 @@
-package com.petzone
+package com.pawnest
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

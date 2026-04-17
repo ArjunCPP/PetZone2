@@ -9,11 +9,6 @@ import MyBookingsScreen from '../Screens/MyBookingsScreen';
 import OffersScreen from '../Screens/OffersScreen';
 import ProfileScreen from '../Screens/ProfileScreen';
 
-if (Platform.OS === 'android') {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
 
 export type BottomTabParamList = {
   HomeTab: undefined;

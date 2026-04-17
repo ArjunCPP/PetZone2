@@ -1,28 +1,21 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, RefreshControl, Animated, FlatList, Dimensions, ActivityIndicator, StatusBar, Alert, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, RefreshControl, Animated, FlatList, Dimensions, ActivityIndicator, StatusBar, Alert, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../ThemeContext';
-import { Icon } from '../Components/Icon';
+import { Icon, IconName } from '../Components/Icon';
 import ShopCard from '../Components/ShopCard';
 import { HOME_GROOMING_SHOP } from '../Assets';
 import authApi from '../Api';
 import { useLocation } from '../LocationContext';
-import { ShopCardSkeleton } from '../Components/Skeleton';
+import { ShopCardSkeleton, BannerSkeleton, CategorySkeleton } from '../Components/Skeleton';
+import { notificationService } from '../Services/NotificationService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const BANNERS = [
-  { id: '1', image: require('../Assets/Home_Screen/offer_banner_1.png') },
-  { id: '2', image: require('../Assets/Home_Screen/offer_banner_2.png') },
-];
+// Statics deleted
 
-const CATEGORIES = [
-  { id: '1', name: 'Bath & Spa', icon: 'shower' as const, color: '#4A90E2' },
-  { id: '2', name: 'Grooming', icon: 'cut' as const, color: '#FF6F61' },
-  { id: '3', name: 'Day Care', icon: 'dog' as const, color: '#7ED321' },
-  { id: '4', name: 'Premium', icon: 'offer' as const, color: '#F5A623' },
-];
+
 
 const HEADER_TOP_HEIGHT = 78;   // Row 1: Shortcuts (Reduced)
 const SEARCH_BOX_HEIGHT = 76;   // Row 2: Search line (Reduced)
@@ -38,9 +31,15 @@ export default function HomeScreen({ navigation }: any) {
   const [shops, setShops] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const hasFetched = useRef(false);
+  const hasFetchedBanners = useRef(false);
 
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [fetchingBanners, setFetchingBanners] = useState(true);
+  const [dynamicServices, setDynamicServices] = useState<any[]>([]);
+  const [isFiltering, setIsFiltering] = useState(false);
   const {
     userLocation,
     coords,
@@ -52,9 +51,34 @@ export default function HomeScreen({ navigation }: any) {
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Load unread count whenever screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      // 1. Status Bar Setup
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(Theme.colors.primary);
+      }
+
+      // 2. Fetch Notifications
+      notificationService.getUnreadCount().then(count => {
+        setUnreadCount(count);
+      });
+
+      // 3. Main Data Fetch
+      fetchShops();
+      fetchPetServicesFilter();
+      fetchActiveOffers();
+
+      return () => {
+        // Optional: Reset status bar if needed on unfocus
+      };
+    }, [Theme])
+  );
+
   // Animation Interpolations
-  const STICKY_ZONE_HEIGHT = SEARCH_BOX_HEIGHT + 14; // Slightly more for centering
-  const COLLAPSE_THRESHOLD = HEADER_TOP_HEIGHT + ROW_GAP; // Hide shortcuts only
+  const STICKY_ZONE_HEIGHT = SEARCH_BOX_HEIGHT + 14;
+  const COLLAPSE_THRESHOLD = HEADER_TOP_HEIGHT + ROW_GAP;
 
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, COLLAPSE_THRESHOLD],
@@ -82,32 +106,97 @@ export default function HomeScreen({ navigation }: any) {
 
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, COLLAPSE_THRESHOLD],
-    outputRange: [0, 12], // Push down into the center of the sticky area
+    outputRange: [0, 12],
     extrapolate: 'clamp'
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      // Force Status Bar styling when on Home Screen
-      StatusBar.setBarStyle('light-content');
-      import('react-native').then(({ Platform }) => {
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor(Theme.colors.primary);
-        }
-      });
+  const fetchActiveOffers = async () => {
+    try {
+      if (!hasFetchedBanners.current) {
+        setFetchingBanners(true);
+      }
+      const response = await authApi.activeOffers();
+      console.log('📡 Fetching active offers:', response.data);
+      if (response.data?.success) {
+        setBanners(response.data.data);
+      }
+    } catch (error: any) {
+      console.log('❌ Fetch active offers Error:', error.response?.data || error.message);
+    } finally {
+      hasFetchedBanners.current = true;
+      setFetchingBanners(false);
+    }
+  };
 
-      fetchShops();
-    }, [Theme])
-  );
+  const fetchPetServicesFilter = async () => {
+    try {
+      const response = await authApi.petServicesFilter();
+      console.log('📡 Fetching pet services filter', response.data);
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        const top4 = response.data.data.slice(0, 4);
+        const mapped = top4.map((service: any, index: number) => {
+          const name = service.name || 'Service';
+          const cat = (service.category || '').toLowerCase();
+
+          // Dynamic Icon Mapping
+          let icon: IconName = 'pets';
+          if (cat.includes('bath') || name.toLowerCase().includes('bath')) icon = 'shower';
+          else if (cat.includes('groom') || name.toLowerCase().includes('groom')) icon = 'cut';
+          else if (cat.includes('day') || name.toLowerCase().includes('day')) icon = 'dog';
+          else if (cat.includes('premium') || name.toLowerCase().includes('premium')) icon = 'diamond';
+
+          const colors = ['#4A90E2', '#FF6F61', '#7ED321', '#8B5CF6'];
+          return {
+            ...service,
+            id: service.id || service._id || `service-${index}`,
+            displayName: name,
+            icon,
+            color: colors[index % colors.length]
+          };
+        });
+        setDynamicServices(mapped);
+      }
+    } catch (error: any) {
+      console.log('❌ Fetch pet services filter Error:', error.response?.data || error.message);
+    }
+  };
+
+  const handleServicePress = async (service: any) => {
+    try {
+      setIsFiltering(true);
+      console.log('🚀 Filtering Shops by Service:', service.name);
+
+      const response = await authApi.tenantsList({ serviceName: service.name });
+      console.log('✅ Filtered Shops Response:', response.data);
+
+      if (response.data?.success) {
+        const shopsList = response.data?.data?.data || response.data?.data || [];
+        setShops(shopsList);
+      }
+    } catch (error: any) {
+      console.log('❌ Filter Shops Error:', error.response?.data || error.message);
+    } finally {
+      setIsFiltering(false);
+    }
+  };
 
   useEffect(() => {
+    if (banners.length === 0) return;
     const timer = setInterval(() => {
-      let nextIndex = (bannerIndex + 1) % BANNERS.length;
+      let nextIndex = (bannerIndex + 1) % banners.length;
       setBannerIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      try {
+        flatListRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+          viewPosition: 0.5
+        });
+      } catch (e) {
+        // Fallback for indexing errors during layout shifts
+      }
     }, 4000);
     return () => clearInterval(timer);
-  }, [bannerIndex]);
+  }, [bannerIndex, banners.length]);
 
   const fetchShops = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -154,9 +243,9 @@ export default function HomeScreen({ navigation }: any) {
     };
 
     return (
-      <Pressable 
-        onPressIn={handlePressIn} 
-        onPressOut={handlePressOut} 
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         onPress={onPress}
       >
         <Animated.View style={[style, { transform: [{ scale }] }]}>
@@ -192,28 +281,34 @@ export default function HomeScreen({ navigation }: any) {
 
   const renderFlashCarousel = () => (
     <View style={styles.carouselContainer}>
-      <FlatList
-        ref={flatListRef}
-        data={BANNERS}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setBannerIndex(index);
-        }}
-        renderItem={({ item }) => (
-          <View style={styles.bannerWrapper}>
-            <Image source={item.image} style={styles.bannerImage} resizeMode="cover" />
+      {fetchingBanners ? (
+        <BannerSkeleton />
+      ) : banners.length > 0 ? (
+        <>
+          <FlatList
+            ref={flatListRef}
+            data={banners}
+            keyExtractor={(item, index) => (item.id || item._id || 'banner') + '-' + index}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setBannerIndex(index);
+            }}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={0.9} style={styles.bannerWrapper} onPress={() => navigation.navigate('Offers')}>
+                <Image source={{ uri: item.images?.[0]?.url }} style={styles.bannerImage} resizeMode="cover" />
+              </TouchableOpacity>
+            )}
+          />
+          <View style={styles.pagination}>
+            {banners.map((_, i) => (
+              <View key={i} style={[styles.paginationDot, bannerIndex === i && styles.paginationDotActive]} />
+            ))}
           </View>
-        )}
-      />
-      <View style={styles.pagination}>
-        {BANNERS.map((_, i) => (
-          <View key={i} style={[styles.paginationDot, bannerIndex === i && styles.paginationDotActive]} />
-        ))}
-      </View>
+        </>
+      ) : null}
     </View>
   );
 
@@ -236,24 +331,37 @@ export default function HomeScreen({ navigation }: any) {
 
           <Animated.View style={[styles.headerShortcuts, { opacity: topRowOpacity }]}>
             <View style={styles.shortcutList}>
-              {CATEGORIES.map(cat => (
-                <View key={cat.id} style={styles.shortcutWrapper}>
-                  <ScaleButton style={styles.shortcutPill}>
-                    <View style={styles.shortcutIconBox}>
-                      <Icon name={cat.icon} size={20} color={cat.color} />
+              {dynamicServices.length > 0 ? (
+                <>
+                  {dynamicServices.map(service => (
+                    <View key={service.id} style={styles.shortcutWrapper}>
+                      <ScaleButton style={styles.shortcutPill} onPress={() => handleServicePress(service)}>
+                        <View style={styles.shortcutIconBox}>
+                          <Icon name={service.icon} size={20} color={service.color} />
+                        </View>
+                        <Text style={styles.shortcutName} numberOfLines={1}>{service.displayName.split(' ')[0]}</Text>
+                      </ScaleButton>
                     </View>
-                    <Text style={styles.shortcutName} numberOfLines={1}>{cat.name.split(' ')[0]}</Text>
-                  </ScaleButton>
-                </View>
-              ))}
-              <View style={styles.shortcutWrapper}>
-                <ScaleButton style={styles.shortcutPill}>
-                  <View style={styles.shortcutIconBox}>
-                    <Icon name="offer" size={20} color="#F5A623" />
+                  ))}
+                  {/* Offers button only appears when dynamic services are loaded */}
+                  <View style={styles.shortcutWrapper}>
+                    <ScaleButton style={styles.shortcutPill} onPress={() => navigation.navigate('OffersTab')}>
+                      <View style={styles.shortcutIconBox}>
+                        <Icon name="offer" size={20} color="#F5A623" />
+                      </View>
+                      <Text style={styles.shortcutName}>Offers</Text>
+                    </ScaleButton>
                   </View>
-                  <Text style={styles.shortcutName}>Offers</Text>
-                </ScaleButton>
-              </View>
+                </>
+              ) : (
+                <>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <View key={i} style={styles.shortcutWrapper}>
+                      <CategorySkeleton />
+                    </View>
+                  ))}
+                </>
+              )}
             </View>
           </Animated.View>
 
@@ -270,12 +378,23 @@ export default function HomeScreen({ navigation }: any) {
                 onFocus={() => navigation.navigate('Search')}
               />
             </View>
-            <TouchableOpacity 
-              style={styles.qrBtn} 
+            <TouchableOpacity
+              style={styles.qrBtn}
               activeOpacity={0.6}
-              onPress={() => navigation.navigate('Notifications')}
+              onPress={() => {
+                notificationService.markAllRead();
+                setUnreadCount(0);
+                navigation.navigate('Notifications');
+              }}
             >
               <Icon name="notifications" size={24} color="#FFF" />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </Animated.View>
         </Animated.View>
@@ -309,7 +428,7 @@ export default function HomeScreen({ navigation }: any) {
           </View>
 
           <View style={styles.shopsContainer}>
-            {initialLoad ? (
+            {(initialLoad || isFiltering) ? (
               <View style={styles.shopsGrid}>
                 {/* 2 Featured Skeletons */}
                 <View style={styles.featuredWrapper}>
@@ -330,7 +449,7 @@ export default function HomeScreen({ navigation }: any) {
                 {shops.map((shop, index) => {
                   const isFeatured = index < 2;
                   return (
-                    <View key={shop.id || shop._id} style={isFeatured ? styles.featuredWrapper : styles.gridWrapper}>
+                    <View key={(shop.id || shop._id || 'shop') + '-' + index} style={isFeatured ? styles.featuredWrapper : styles.gridWrapper}>
                       <ShopCard
                         variant={isFeatured ? 'featured' : 'grid'}
                         name={shop.storeName}
@@ -380,11 +499,14 @@ const getStyles = (Theme: any, insets: any) => StyleSheet.create({
   shortcutWrapper: { alignItems: 'center', width: 64 },
   shortcutPill: { alignItems: 'center', width: '100%' },
   shortcutIconBox: {
-    width: 56, height: 56, borderRadius: 18, // Slightly larger icons
+    width: 56,
+    height: 56,
+    borderRadius: 18, // Slightly larger icons
     backgroundColor: '#FFF',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 6,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3
+    shadowColor: '#000',
   },
   shortcutName: { fontSize: 10, fontWeight: '800', color: '#FFF', textAlign: 'center', textTransform: 'uppercase' },
 
@@ -405,6 +527,27 @@ const getStyles = (Theme: any, insets: any) => StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, color: '#333', marginLeft: 12, height: '100%' },
   vDivider: { width: 1, height: 20, backgroundColor: '#EEE' },
   qrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', paddingBottom: 2 },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  notifBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '700',
+    lineHeight: 11,
+  },
+
 
   scrollArea: { flex: 1, backgroundColor: Theme.colors.background },
   scrollContent: { paddingBottom: 120 },

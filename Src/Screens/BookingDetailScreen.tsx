@@ -13,6 +13,8 @@ import { ConfirmModal } from '../Components/ConfirmModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetail'>;
 
+const CANCELLATION_POLICY = "• Before 2 hours: Full Refund\n• 1 to 2 hours: 75% Refund\n• Within 1 hour: No Refund";
+
 export default function BookingDetailScreen({ route, navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
@@ -51,10 +53,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const isUpcoming = status === 'PENDING' || status === 'CONFIRMED' || status === 'UPCOMING';
   const statusLabel = isUpcoming ? 'Upcoming' : status === 'COMPLETED' ? 'Completed' : 'Cancelled';
   
-  // 12h rule check
-  const now = new Date();
-  const hoursDiff = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-  const canCancel = hoursDiff >= 12;
+
 
   const handleCancel = () => {
     setConfirmVisible(true);
@@ -175,7 +174,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
             <View style={styles.card}>
               <View style={styles.infoRow}>
                 <View style={styles.infoLeft}>
-                  <Icon name="offer" size={18} color={Theme.colors.primary} />
+                  <Icon name="tag" size={18} color={Theme.colors.primary} />
                   <Text style={styles.infoLabel}>Service</Text>
                 </View>
                 <Text style={styles.infoValue}>{bookingData.serviceDetails?.title || 'Pet Grooming'}</Text>
@@ -191,7 +190,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoLeft}>
-                  <Icon name="heart" size={18} color={Theme.colors.primary} />
+                  <Icon name="clock" size={18} color={Theme.colors.primary} />
                   <Text style={styles.infoLabel}>Duration</Text>
                 </View>
                 <Text style={styles.infoValue}>{bookingData.serviceDetails?.durationMinutes || 60} Minutes</Text>
@@ -227,6 +226,32 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
                 <Text style={[styles.paymentValue, styles.totalValue]}>₹{bookingData.totalAmount || bookingData.serviceDetails?.price || '0'}</Text>
               </View>
             </View>
+            
+            {/* Refund Section for Cancelled Bookings */}
+            {statusLabel === 'Cancelled' && bookingData.refund && (
+              <>
+                <Text style={styles.sectionTitle}>REFUND INFORMATION</Text>
+                <View style={[styles.card, { backgroundColor: '#F8F9FA' }]}>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLeft}>
+                      <Icon name="tag" size={18} color={Theme.colors.primary} />
+                      <Text style={styles.infoLabel}>Refund Status</Text>
+                    </View>
+                    <Text style={[styles.infoValue, { color: bookingData.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
+                      {bookingData.refund.refundStatus || 'Pending'}
+                    </Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLeft}>
+                      <Icon name="clock" size={18} color={Theme.colors.primary} />
+                      <Text style={styles.infoLabel}>Refund Amount</Text>
+                    </View>
+                    <Text style={styles.infoValue}>₹{bookingData.refund.refundAmount || 0} ({bookingData.refund.refundPercentage || 0}%)</Text>
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* Notes Section */}
             {bookingData.notes && bookingData.notes !== 'No special instructions' && (
@@ -244,18 +269,15 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
           <TouchableOpacity 
             style={[
               styles.cancelBtn, 
-              cancelling && { opacity: 0.6 },
-              !canCancel && { opacity: 0.4, borderColor: Theme.colors.border, backgroundColor: Theme.colors.border + '1A' }
+              cancelling && { opacity: 0.6 }
             ]} 
-            onPress={() => canCancel && handleCancel()}
-            disabled={cancelling || !canCancel}
+            onPress={() => handleCancel()}
+            disabled={cancelling}
           >
             {cancelling ? (
               <ActivityIndicator color="#f43f5e" />
             ) : (
-              <Text style={[styles.cancelBtnText, !canCancel && { color: Theme.colors.textSecondary }]}>
-                {canCancel ? 'Cancel Booking' : 'Cancellation Unavailable (within 12h)'}
-              </Text>
+              <Text style={styles.cancelBtnText}>Cancel Booking</Text>
             )}
           </TouchableOpacity>
         )}
@@ -278,6 +300,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         message={`Are you sure you want to cancel your booking at ${bookingData?.tenant?.storeName || 'the store'} on ${dateStr} at ${timeStr}?`}
         confirmLabel="Yes, Cancel"
         cancelLabel="Keep Booking"
+        policyInfo={CANCELLATION_POLICY}
       />
     </SafeAreaView>
   );

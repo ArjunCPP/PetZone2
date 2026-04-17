@@ -19,6 +19,7 @@ import { useAppTheme } from '../ThemeContext';
 import { DOG_HERO, PETZONE_LOGO } from '../Assets';
 import { Icon } from '../Components/Icon';
 import { Toast } from '../Components/Toast';
+import { notificationService } from '../Services/NotificationService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -58,6 +59,7 @@ export default function LoginScreen({ navigation }: Props) {
       if (response.data.success) {
         const token = response.data.data.accessToken;
         await Keychain.setGenericPassword('token', token);
+        await notificationService.getFCMToken(); // Fetch and register device FCM on login
         navigation.replace('MainTabs');
       } else {
         setErrors({ email: ' ', password: response.data.message || 'Invalid credentials' });
@@ -83,6 +85,7 @@ export default function LoginScreen({ navigation }: Props) {
       const accessToken = authResponse.data.data.accessToken;
       if (!accessToken) throw new Error('Failed to retrieve secure access token');
       await Keychain.setGenericPassword('token', accessToken);
+      await notificationService.getFCMToken(); // Fetch and register FCM token
       navigation.replace('MainTabs');
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -155,8 +158,7 @@ export default function LoginScreen({ navigation }: Props) {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={(v) => { setEmail(v); setErrors({ ...errors, email: '' }); }}
-                  cursorColor={Theme.colors.primary}
-                  selectionColor={Theme.colors.primary + '40'}
+                  autoCorrect={false}
                 />
               </View>
               {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
@@ -172,8 +174,6 @@ export default function LoginScreen({ navigation }: Props) {
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(v) => { setPassword(v); setErrors({ ...errors, password: '' }); }}
-                  cursorColor={Theme.colors.primary}
-                  selectionColor={Theme.colors.primary + '40'}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Icon name={showPassword ? "eye_off" : "eye"} size={20} color={Theme.colors.textSecondary} />

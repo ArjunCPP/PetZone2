@@ -20,6 +20,8 @@ interface Booking {
   status: 'Upcoming' | 'Completed' | 'Cancelled';
 }
 
+const CANCELLATION_POLICY = "• Before 2 hours: Full Refund\n• 1 to 2 hours: 75% Refund\n• Within 1 hour: No Refund";
+
 export default function MyBookingsScreen({ navigation }: any) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
@@ -172,11 +174,7 @@ export default function MyBookingsScreen({ navigation }: any) {
             const scheduledDate = new Date(item.scheduledAt);
             const dateStr = scheduledDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const timeStr = scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            
-            // 12h rule check
-            const now = new Date();
-            const hoursDiff = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-            const canCancel = hoursDiff >= 12;
+
 
             return (
               <TouchableOpacity 
@@ -206,19 +204,34 @@ export default function MyBookingsScreen({ navigation }: any) {
                     <Text style={styles.footerText}>{dateStr} • {timeStr}</Text>
                   </View>
                   <View style={styles.durationBadge}>
-                    <Icon name="offer" size={12} color={Theme.colors.primary} />
+                    <Icon name="clock" size={12} color={Theme.colors.primary} />
                     <Text style={styles.durationText}>{item.serviceDetails?.durationMinutes || 60} Mins</Text>
                   </View>
                 </View>
 
+                {/* Refund Status for Cancelled Bookings */}
+                {statusLabel === 'Cancelled' && item.refund && (
+                  <View style={styles.refundRow}>
+                    <View style={styles.refundInfo}>
+                      <Text style={styles.refundLabel}>Refund Status: </Text>
+                      <Text style={[styles.refundValue, { color: item.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
+                        {item.refund.refundStatus || 'Pending'}
+                      </Text>
+                    </View>
+                    <View style={styles.refundAmount}>
+                      <Text style={styles.refundPercentage}>{item.refund.refundPercentage || 0}%</Text>
+                      <Text style={styles.refundPrice}>₹{item.refund.refundAmount || 0}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {statusLabel === 'Upcoming' && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity 
-                      style={[styles.cancelBookingBtn, !canCancel && { opacity: 0.4, borderColor: Theme.colors.border, backgroundColor: Theme.colors.border + '1A' }]} 
-                      onPress={() => canCancel && handleCancel(item)}
-                      disabled={!canCancel}
+                      style={styles.cancelBookingBtn} 
+                      onPress={() => handleCancel(item)}
                     >
-                      <Text style={[styles.cancelBookingText, !canCancel && { color: Theme.colors.textSecondary }]}>{canCancel ? 'Cancel Booking' : 'Not Cancellable'}</Text>
+                      <Text style={styles.cancelBookingText}>Cancel Booking</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -242,6 +255,7 @@ export default function MyBookingsScreen({ navigation }: any) {
         message={`Are you sure you want to cancel your booking at ${selectedBooking?.tenant?.storeName || 'the store'}?`}
         confirmLabel="Yes, Cancel"
         cancelLabel="Keep Booking"
+        policyInfo={CANCELLATION_POLICY}
       />
 
       <Toast 
@@ -317,4 +331,20 @@ const getStyles = (Theme: any) => StyleSheet.create({
   sortText: { fontSize: 12, fontWeight: '700', color: Theme.colors.primary },
   cancelBookingBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#f43f5e', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f43f5e1A' },
   cancelBookingText: { color: '#f43f5e', fontSize: 13, fontWeight: '800' },
+  refundRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: 12, 
+    paddingTop: 12, 
+    borderTopWidth: 1, 
+    borderTopColor: Theme.colors.border,
+    paddingHorizontal: 4
+  },
+  refundInfo: { flexDirection: 'row', alignItems: 'center' },
+  refundLabel: { fontSize: 13, fontWeight: '600', color: Theme.colors.textSecondary },
+  refundValue: { fontSize: 13, fontWeight: '800' },
+  refundAmount: { alignItems: 'flex-end' },
+  refundPrice: { fontSize: 14, fontWeight: '800', color: Theme.colors.text },
+  refundPercentage: { fontSize: 10, fontWeight: '700', color: Theme.colors.textSecondary },
 });

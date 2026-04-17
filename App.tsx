@@ -3,7 +3,7 @@
  * Uses React Navigation with NavigationContainer + StackNavigation
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, StyleSheet, View, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -12,21 +12,15 @@ import { ThemeProvider, useAppTheme } from './Src/ThemeContext';
 import StackNavigation from './Src/Navigation/StackNavigation';
 import { LocationProvider } from './Src/LocationContext';
 import NetInfo1 from './Src/Components/NetInfo1';
+import { notificationService } from './Src/Services/NotificationService';
+import * as Keychain from 'react-native-keychain';
 
-// Silence warnings from third-party libraries
-LogBox.ignoreLogs([
-  'ProgressBarAndroid has been extracted',
-  'SafeAreaView has been deprecated',
-  'Clipboard has been extracted',
-  'InteractionManager has been deprecated',
-  'PushNotificationIOS has been extracted',
-]);
 
 const linking = {
   prefixes: [
-    'pawnest://', 
-    'https://pawnest.com', 
-    'petzone://', 
+    'pawnest://',
+    'https://pawnest.com',
+    'petzone://',
     'https://petzone.com'
   ],
   config: {
@@ -38,6 +32,52 @@ const linking = {
 
 function MainApp() {
   const { theme, isDarkMode } = useAppTheme();
+
+  useEffect(() => {
+    const initNotifications = async () => {
+      console.log('\n\n=== 🚀 NOTIFICATION INIT START ===');
+
+      // 1. Request permission + create notifee channel
+      const hasPermission = await notificationService.requestUserPermission();
+      console.log('📋 Permission granted:', hasPermission);
+
+      // 2. Get FCM token ONLY if user is logged in
+      if (hasPermission) {
+        try {
+          const credentials = await Keychain.getGenericPassword();
+          if (credentials) {
+            const token = await notificationService.getFCMToken();
+            if (token) {
+              console.log('\n✅ FCM TOKEN (Loaded for authenticated user):');
+              console.log(token);
+              // TODO: If you have an endpoint to update the FCM token, call it here:
+              // authApi.updateProfile({ fcmToken: token });
+            } else {
+              console.warn('❌ FCM Token is NULL — SERVICE_NOT_AVAILABLE or network issue');
+            }
+          } else {
+            console.log('Firebase Notifications: User not logged in, skipping FCM token generation.');
+          }
+        } catch (error) {
+          console.error('Keychain Access Error', error);
+        }
+      }
+
+      console.log('=== 🚀 NOTIFICATION INIT DONE ===\n\n');
+    };
+
+    initNotifications();
+
+    // 3. Setup foreground listener
+    console.log('📡 Setting up foreground notification listener...');
+    const unsubscribeForeground = notificationService.setupForegroundHandler();
+    console.log('📡 Foreground listener ready.');
+
+    return () => {
+      unsubscribeForeground();
+    };
+  }, []);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor="transparent" translucent={true} />

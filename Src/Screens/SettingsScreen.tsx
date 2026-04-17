@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
+import { notificationService } from '../Services/NotificationService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -29,6 +30,7 @@ export default function SettingsScreen({ navigation }: Props) {
             try {
               const response = await authApi.DeleteAccount();
               if (response.data && response.data.success) {
+                await notificationService.deleteFCMToken(); // Clear FCM token
                 await Keychain.resetGenericPassword();
                 navigation.replace('Login');
               } else {
@@ -56,6 +58,7 @@ export default function SettingsScreen({ navigation }: Props) {
           style: 'destructive',
           onPress: async () => {
             try {
+              await notificationService.deleteFCMToken(); // Clear FCM token
               await Keychain.resetGenericPassword();
               navigation.replace('Login');
             } catch (error) {

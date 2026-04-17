@@ -12,6 +12,7 @@ interface ConfirmModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   type?: 'danger' | 'info';
+  policyInfo?: string;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -22,7 +23,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   confirmLabel = 'Yes, Cancel',
   cancelLabel = 'Go Back',
-  type = 'danger'
+  type = 'danger',
+  policyInfo
 }) => {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme, type), [Theme, type]);
@@ -51,6 +53,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           
           <Text style={styles.titleText}>{title}</Text>
           <Text style={styles.messageText}>{message}</Text>
+          
+          {policyInfo && (
+            <View style={styles.policyContainer}>
+              <Icon name="tag" size={14} color="#666" />
+              <Text style={styles.policyText}>{policyInfo}</Text>
+            </View>
+          )}
           
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
@@ -88,7 +97,25 @@ const getStyles = (Theme: any, type: 'danger' | 'info') => StyleSheet.create({
   },
   messageText: { 
     fontSize: 14, color: '#666666', 
-    textAlign: 'center', lineHeight: 20, marginBottom: 24 
+    textAlign: 'center', lineHeight: 20, marginBottom: 20 
+  },
+  policyContainer: {
+    width: '100%',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#ECECEC'
+  },
+  policyText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+    fontWeight: '500'
   },
   buttonRow: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtn: { 

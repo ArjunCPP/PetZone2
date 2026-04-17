@@ -5,6 +5,7 @@ import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
 import { SearchField } from '../Components/SearchField';
 import ShopCard from '../Components/ShopCard';
+import { ShopCardSkeleton } from '../Components/Skeleton';
 import authApi from '../Api';
 import { HOME_GROOMING_SHOP } from '../Assets';
 
@@ -51,15 +52,16 @@ export default function SearchScreen({ navigation }: any) {
     s.address?.city?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const renderShopItem = ({ item }: { item: any }) => (
-    <View style={styles.gridWrapper}>
+  const renderShopItem = ({ item, index }: { item: any, index: number }) => (
+    <View key={(item.id || item._id || 'search') + '-' + index} style={styles.gridWrapper}>
       <ShopCard
         variant="grid"
         name={item.storeName}
         distance={item.address?.city || 'Nearby'}
-        rating={4.8}
+        rating={item.averageRating || 0}
         tags={item.tags || item.amenities || ['Pet Care']}
-        image={item.logo?.url ? { uri: item.logo.url } : HOME_GROOMING_SHOP}
+        image={item.coverImage?.url ? { uri: item.coverImage.url } : HOME_GROOMING_SHOP}
+        logo={item.logo?.url ? { uri: item.logo.url } : undefined}
         onBook={() => navigation.navigate('ShopDetail', { shopId: item.id || item._id, shopDetails: item })}
       />
     </View>
@@ -83,20 +85,26 @@ export default function SearchScreen({ navigation }: any) {
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Theme.colors.primary} />
+        <View style={styles.listContent}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <View key={i} style={styles.gridWrapper}>
+              <ShopCardSkeleton variant="grid" />
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
           data={filteredShops}
-          keyExtractor={(item) => item.id || item._id}
+          keyExtractor={(item, index) => (item.id || item._id || 'search') + '-' + index}
           renderItem={renderShopItem}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Icon name="search" size={48} color={Theme.colors.border} />
-              <Text style={styles.emptyText}>No shops matching "{searchText}"</Text>
+              <Text style={styles.emptyText}>
+                {searchText ? `No shops matching "${searchText}"` : "No shops available"}
+              </Text>
             </View>
           }
         />

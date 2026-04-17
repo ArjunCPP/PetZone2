@@ -129,6 +129,14 @@ class AuthApiFetch {
         const response = multiPartAxiosInstance.post(`/uploads/user/avatar`, payload);
         return response;
     }
+    petServicesFilter() {
+        const response = axios.get(`/pets/services`);
+        return response;
+    }
+    activeOffers() {
+        const response = axios.get(`/offers/active`);
+        return response;
+    }
 }
 
 const authApi = new AuthApiFetch();

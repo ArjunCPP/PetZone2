@@ -151,6 +151,23 @@ export const ShopCardSkeleton = ({ variant = 'featured' }: { variant?: 'featured
   );
 };
 
+export const BannerSkeleton = () => {
+  return (
+    <View style={{ width: '100%', paddingHorizontal: 16 }}>
+      <Skeleton height={164} borderRadius={20} />
+    </View>
+  );
+};
+
+export const CategorySkeleton = () => {
+    return (
+        <View style={{ width: 70, gap: 8, alignItems: 'center' }}>
+            <Skeleton width={52} height={52} borderRadius={26} />
+            <Skeleton width={45} height={12} borderRadius={4} />
+        </View>
+    );
+};
+
 const styles = StyleSheet.create({
   bookingCard: { 
     backgroundColor: '#FFF', borderRadius: 20, padding: 16, marginBottom: 16,

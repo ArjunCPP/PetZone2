@@ -6,9 +6,6 @@ import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HelpCenter'>;
 

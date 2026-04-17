@@ -1,29 +1,84 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar, LayoutAnimation, UIManager, Platform, Clipboard, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../ThemeContext';
-import { HOME_PET_SPA, SHOP_DETAIL_INTERIOR } from '../Assets';
+import { HOME_PET_SPA } from '../Assets';
 import { Icon } from '../Components/Icon';
 
+
+import authApi from '../Api';
+import { useFocusEffect } from '@react-navigation/native';
+import { BannerSkeleton } from '../Components/Skeleton';
+
 interface Offer {
-  id: string;
+  _id?: string;
+  id?: string;
   title: string;
   description: string;
-  code: string;
-  expiry: string;
-  discount: string;
-  image: any;
-  color: string;
+  promoCode: string;
+  endDate: string;
+  discountPercentage?: number;
+  discountType?: string;
+  discountAmount?: number;
+  images: any[];
 }
-
-const OFFERS: Offer[] = [
-  { id: '1', title: 'First Grooming Deal', description: 'Get a flat discount on your first pet grooming session.', code: 'FIRSTPAW', expiry: '31 Oct 2026', discount: '30% OFF', image: HOME_PET_SPA, color: '#fef3c7' },
-  { id: '2', title: 'Weekend Spa Special', description: 'Treat your furry friend to a full spa day at a special price.', code: 'SPA40', expiry: '15 Nov 2026', discount: '₹400 OFF', image: SHOP_DETAIL_INTERIOR, color: '#dcfce7' },
-];
 
 export default function OffersScreen() {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
+  const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const hasFetchedOffers = React.useRef(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchActiveOffers();
+    }, [])
+  );
+
+  const fetchActiveOffers = async () => {
+    try {
+      if (!hasFetchedOffers.current) {
+        setIsLoading(true);
+      }
+      const response = await authApi.activeOffers();
+      if (response.data?.success) {
+        setOffers(response.data.data);
+      }
+    } catch (error: any) {
+      console.log('❌ Fetch active offers Error:', error.response?.data || error.message);
+    } finally {
+      hasFetchedOffers.current = true;
+      setIsLoading(false);
+    }
+  };
+
+  const toggleExpand = (id: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const getDiscountText = (offer: Offer) => {
+    if (offer.discountType === 'percentage' && offer.discountPercentage) {
+      return `${offer.discountPercentage}% OFF`;
+    }
+    if (offer.discountAmount) {
+      return `₹${offer.discountAmount} OFF`;
+    }
+    return '';
+  };
+  const handleCopy = (code: string) => {
+    Clipboard.setString(code);
+    Alert.alert('Success', `Promo code ${code} copied to clipboard!`);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
@@ -31,68 +86,75 @@ export default function OffersScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>PawNest Offers</Text>
-        <TouchableOpacity style={styles.historyBtn}>
+        <View style={styles.historyBtn}>
           <Icon name="clock" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* Featured Offer Banner */}
-        <View style={styles.featuredOffer}>
-          <Image source={HOME_PET_SPA} style={styles.featuredImage} resizeMode="cover" />
-          <View style={styles.featuredOverlay}>
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountBadgeText}>50% OFF</Text>
-            </View>
-            <Text style={styles.featuredTitle}>Mega Diwali Sale!</Text>
-            <Text style={styles.featuredSubtitle}>Valid on all premium services</Text>
-            <TouchableOpacity style={styles.claimBtn}>
-              <Text style={styles.claimBtnText}>Claim Now</Text>
-            </TouchableOpacity>
+        {/* Dynamic Expandable Offer Cards */}
+        {isLoading ? (
+          <View style={{ gap: 24 }}>
+            <BannerSkeleton />
+            <BannerSkeleton />
           </View>
-        </View>
+        ) : offers.length > 0 ? (
+          offers.map((offer, index) => {
+            const offerId = offer.id || offer._id || `fallback-${index}`;
+            const isExpanded = expandedId === offerId;
 
-        <Text style={styles.sectionTitle}>Available Coupons</Text>
-
-        <View style={styles.couponList}>
-          {OFFERS.map(offer => (
-            <View key={offer.id} style={[styles.couponCard, { backgroundColor: offer.color }]}>
-              <View style={styles.couponLeft}>
-                <Image source={offer.image} style={styles.couponImage} resizeMode="cover" />
-              </View>
-              <View style={styles.couponRight}>
-                <View style={styles.couponHeader}>
-                  <Text style={styles.couponTitle}>{offer.title}</Text>
-                  <Text style={styles.couponDiscount}>{offer.discount}</Text>
-                </View>
-                <Text style={styles.couponDesc}>{offer.description}</Text>
-                <View style={styles.couponFooter}>
-                  <View style={styles.codeRow}>
-                    <Text style={styles.codeLabel}>CODE:</Text>
-                    <Text style={styles.codeText}>{offer.code}</Text>
+            return (
+              <View key={offerId + '-' + index} style={styles.offerCardContainer}>
+                <TouchableOpacity activeOpacity={0.9} onPress={() => toggleExpand(offerId)}>
+                  <View style={styles.featuredOfferContent}>
+                    <Image 
+                      source={offer.images?.[0]?.url ? { uri: offer.images[0].url } : HOME_PET_SPA} 
+                      style={styles.featuredImage} 
+                      resizeMode="cover" 
+                    />
+                    <View style={styles.featuredOverlay}>
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountBadgeText}>{getDiscountText(offer)}</Text>
+                      </View>
+                      <View style={styles.titleRow}>
+                        <Text style={styles.featuredTitle}>{offer.title}</Text>
+                        <View style={styles.expandIconBox}>
+                           <Icon name="arrow_forward" size={14} color={Theme.colors.white} style={{ transform: [{ rotate: isExpanded ? '-90deg' : '90deg' }] }} />
+                        </View>
+                      </View>
+                      {!isExpanded && (
+                        <Text style={styles.featuredSubtitle} numberOfLines={1}>{offer.description}</Text>
+                      )}
+                    </View>
                   </View>
-                  <TouchableOpacity style={styles.copyBtn}>
-                    <Text style={styles.copyBtnText}>COPY</Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.expiryText}>Expires on {offer.expiry}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+                </TouchableOpacity>
 
-        {/* Loyalty Program Section */}
-        <View style={styles.loyaltyBlock}>
-          <View style={styles.loyaltyIconWrapper}><Icon name="star" size={24} color={Theme.colors.secondary} /></View>
-          <View style={styles.loyaltyTextCol}>
-            <Text style={styles.loyaltyTitle}>Loyalty Program</Text>
-            <Text style={styles.loyaltySubtitle}>Earn 10 points for every ₹100 spent</Text>
-          </View>
-          <TouchableOpacity style={styles.joinBtn}>
-            <Text style={styles.joinBtnText}>Join Now</Text>
-          </TouchableOpacity>
-        </View>
+                {isExpanded && (
+                  <View style={styles.expandedDetails}>
+                    <Text style={styles.expandedDesc}>{offer.description}</Text>
+                    
+                    <View style={styles.expandedFooterRow}>
+                      <Text style={styles.expiryTextExpanded}>Expires: {formatDate(offer.endDate)}</Text>
+                    </View>
+
+                    <TouchableOpacity 
+                      style={styles.applyBtn} 
+                      activeOpacity={0.8}
+                      onPress={() => handleCopy(offer.promoCode)}
+                    >
+                      <Text style={styles.applyBtnText}>Tap to copy:  {offer.promoCode}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })
+        ) : (
+          <Text style={styles.emptyText}>No active offers at the moment.</Text>
+        )}
+
+
 
       </ScrollView>
     </SafeAreaView>
@@ -112,34 +174,36 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   scrollContent: { padding: 16, paddingBottom: 100 },
 
-  featuredOffer: { height: 200, borderRadius: 24, overflow: 'hidden', position: 'relative', marginBottom: 24 },
+  emptyText: { textAlign: 'center', color: Theme.colors.textSecondary, marginTop: 40, fontSize: 16, fontWeight: '600' },
+
+  offerCardContainer: { 
+    backgroundColor: Theme.colors.white, 
+    borderRadius: 24, 
+    marginBottom: 24, 
+    overflow: 'hidden',
+    borderWidth: 1, 
+    borderColor: Theme.colors.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 
+  },
+  featuredOfferContent: { height: 200, position: 'relative' },
   featuredImage: { width: '100%', height: '100%' },
-  featuredOverlay: { position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', padding: 20, justifyContent: 'flex-end' },
+  featuredOverlay: { position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', padding: 20, justifyContent: 'flex-end' },
   discountBadge: { backgroundColor: Theme.colors.secondary, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 },
   discountBadgeText: { color: Theme.colors.white, fontWeight: '800', fontSize: 12 },
-  featuredTitle: { fontSize: 24, fontWeight: '800', color: Theme.colors.white },
-  featuredSubtitle: { fontSize: 14, color: Theme.colors.white + 'CC', marginTop: 4, marginBottom: 16 },
-  claimBtn: { backgroundColor: Theme.colors.white, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, alignSelf: 'flex-start' },
-  claimBtnText: { color: Theme.colors.primary, fontWeight: '700', fontSize: 13 },
-
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, marginBottom: 16 },
-
-  couponList: { gap: 16 },
-  couponCard: { flexDirection: 'row', borderRadius: 20, overflow: 'hidden', minHeight: 140 },
-  couponLeft: { width: 100 },
-  couponImage: { width: '100%', height: '100%' },
-  couponRight: { flex: 1, padding: 16, gap: 4 },
-  couponHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  couponTitle: { fontSize: 15, fontWeight: '800', color: Theme.colors.text, flex: 1 },
-  couponDiscount: { fontSize: 16, fontWeight: '800', color: Theme.colors.primary, marginLeft: 8 },
-  couponDesc: { fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 8 },
-  couponFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.white, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderStyle: 'dashed', borderWidth: 1, borderColor: Theme.colors.border },
-  codeLabel: { fontSize: 9, fontWeight: '800', color: Theme.colors.textSecondary },
-  codeText: { fontSize: 12, fontWeight: '800', color: Theme.colors.text },
-  copyBtn: { backgroundColor: Theme.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  copyBtnText: { color: Theme.colors.white, fontSize: 10, fontWeight: '800' },
-  expiryText: { fontSize: 10, color: Theme.colors.textSecondary, marginTop: 4 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  featuredTitle: { fontSize: 24, fontWeight: '800', color: Theme.colors.white, flex: 1 },
+  expandIconBox: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  featuredSubtitle: { fontSize: 14, color: Theme.colors.white, marginTop: 4, opacity: 0.9, fontWeight: '500' },
+  
+  expandedDetails: { padding: 20, backgroundColor: Theme.colors.white },
+  expandedDesc: { fontSize: 15, color: Theme.colors.textSecondary, lineHeight: 22, marginBottom: 20 },
+  expandedFooterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  codeBox: { backgroundColor: Theme.colors.primary + '1A', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderStyle: 'dashed', borderWidth: 1, borderColor: Theme.colors.primary },
+  codeLabelExpanded: { fontSize: 9, fontWeight: '800', color: Theme.colors.primary, opacity: 0.8 },
+  codeTextExpanded: { fontSize: 13, fontWeight: '800', color: Theme.colors.primary, marginTop: 2 },
+  expiryTextExpanded: { fontSize: 12, fontWeight: '700', color: Theme.colors.error },
+  applyBtn: { backgroundColor: Theme.colors.primary, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
+  applyBtnText: { color: Theme.colors.white, fontSize: 15, fontWeight: '800' },
 
   loyaltyBlock: { 
     flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white, 

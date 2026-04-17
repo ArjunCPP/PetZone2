@@ -1,4 +1,4 @@
-package com.petzone
+package com.pawnest
 
 import android.app.Application
 import com.facebook.react.PackageList

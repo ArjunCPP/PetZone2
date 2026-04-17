@@ -29,11 +29,12 @@ const injectToken = async (config: InternalAxiosRequestConfig) => {
         const credentials = await Keychain.getGenericPassword();
         if (credentials && credentials.password) {
             config.headers.Authorization = `Bearer ${credentials.password}`;
+            console.log(`🔑 Auth Token: ${credentials.password}`);
         }
     } catch (error) {
         console.error('Keychain Access Error:', error);
     }
-    console.log(`🚀 Calling API: ${config.baseURL}${config.url}`);
+    console.log(`🚀 Calling API: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     return config;
 };
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "389094230280",
+    "project_id": "pet-service-booking-616bc",
+    "storage_bucket": "pet-service-booking-616bc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389094230280:android:441575f6ae3a7ec162c4bd",
+        "android_client_info": {
+          "package_name": "com.pawnest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTI3KYTwqSRReJHRJnvSeuehXlz5TM2xE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

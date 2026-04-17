@@ -54,7 +54,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
                   style={styles.absInfoBtn}
                   onPress={() => onOpenDetails(service)}
                 >
-                  <Icon name="offer" size={14} color={Theme.colors.textSecondary} />
+                  <Icon name="info" size={14} color={Theme.colors.textSecondary} />
                 </TouchableOpacity>
 
                 <View style={[styles.serviceIconContainer, isSelected && styles.serviceIconContainerSelected]}>

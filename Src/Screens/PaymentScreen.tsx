@@ -176,7 +176,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
         <View style={styles.methodList}>
           <View style={styles.razorpayCard}>
             <View style={styles.methodIconWrapper}>
-              <Icon name="offer" size={20} color={Theme.colors.primary} />
+              <Icon name="lock" size={20} color={Theme.colors.primary} />
             </View>
             <View style={styles.methodTextCol}>
               <Text style={styles.methodTitle}>Secure Payment via Razorpay</Text>

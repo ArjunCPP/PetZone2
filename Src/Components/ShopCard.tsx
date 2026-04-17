@@ -106,7 +106,7 @@ export default function ShopCard({
           <View style={styles.topOverlay}>
             {!isGrid && (
               <View style={styles.trendingBadge}>
-                <Icon name="offer" size={10} color="#FFF" />
+                <Icon name="trending" size={10} color="#FFF" />
                 <Text style={styles.trendingText}>TRENDING</Text>
               </View>
             )}
