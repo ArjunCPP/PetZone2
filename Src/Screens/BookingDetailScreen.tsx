@@ -9,7 +9,7 @@ import { SHOP_DETAIL_LOGO } from '../Assets';
 import { Skeleton } from '../Components/Skeleton';
 import authApi from '../Api';
 import { Toast } from '../Components/Toast';
-import { ConfirmModal } from '../Components/ConfirmModal';
+import { CancelModal } from '../Components/CancelModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetail'>;
 
@@ -52,7 +52,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const status = bookingData.status?.toUpperCase() || 'PENDING';
   const isUpcoming = status === 'PENDING' || status === 'CONFIRMED' || status === 'UPCOMING';
   const statusLabel = isUpcoming ? 'Upcoming' : status === 'COMPLETED' ? 'Completed' : 'Cancelled';
-  
+
 
 
   const handleCancel = () => {
@@ -80,6 +80,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
     setConfirmVisible(false);
     try {
       setCancelling(true);
+      console.log("Booking ID:", bookingData._id || bookingData.id);
       const response = await authApi.cancelBookinng(bookingData._id || bookingData.id);
       if (response.data?.success) {
         setToast({ visible: true, message: 'Booking cancelled successfully!', type: 'success' });
@@ -99,7 +100,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
@@ -110,7 +111,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {loading ? (
           <View>
             <View style={styles.statusSection}>
@@ -142,18 +143,18 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
           <>
             {/* Status Badge Top */}
             <View style={styles.statusSection}>
-               <View style={[styles.statusBadge, styles[`status${statusLabel}`]]}>
-                 <Text style={styles.statusText}>{statusLabel.toUpperCase()}</Text>
-               </View>
+              <View style={[styles.statusBadge, styles[`status${statusLabel}`]]}>
+                <Text style={styles.statusText}>{statusLabel.toUpperCase()}</Text>
+              </View>
             </View>
 
             {/* Shop Section */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Image 
-                  source={bookingData.tenant?.logo?.url ? { uri: bookingData.tenant.logo.url } : SHOP_DETAIL_LOGO} 
-                  style={styles.shopLogo} 
-                  resizeMode="cover" 
+                <Image
+                  source={bookingData.tenant?.logo?.url ? { uri: bookingData.tenant.logo.url } : SHOP_DETAIL_LOGO}
+                  style={styles.shopLogo}
+                  resizeMode="cover"
                 />
                 <View style={styles.shopInfo}>
                   <Text style={styles.shopName}>{bookingData.tenant?.storeName || 'PawNest Shop'}</Text>
@@ -202,13 +203,13 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
               <>
                 <Text style={styles.sectionTitle}>PET DETAILS</Text>
                 <View style={styles.card}>
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoLeft}>
-                            <Icon name="profile" size={18} color={Theme.colors.primary} />
-                            <Text style={styles.infoLabel}>Pet Name</Text>
-                        </View>
-                        <Text style={styles.infoValue}>{bookingData.pet.name}</Text>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLeft}>
+                      <Icon name="profile" size={18} color={Theme.colors.primary} />
+                      <Text style={styles.infoLabel}>Pet Name</Text>
                     </View>
+                    <Text style={styles.infoValue}>{bookingData.pet.name}</Text>
+                  </View>
                 </View>
               </>
             )}
@@ -226,7 +227,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
                 <Text style={[styles.paymentValue, styles.totalValue]}>₹{bookingData.totalAmount || bookingData.serviceDetails?.price || '0'}</Text>
               </View>
             </View>
-            
+
             {/* Refund Section for Cancelled Bookings */}
             {statusLabel === 'Cancelled' && bookingData.refund && (
               <>
@@ -266,11 +267,11 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         )}
 
         {statusLabel === 'Upcoming' && !loading && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.cancelBtn, 
+              styles.cancelBtn,
               cancelling && { opacity: 0.6 }
-            ]} 
+            ]}
             onPress={() => handleCancel()}
             disabled={cancelling}
           >
@@ -285,22 +286,21 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <Toast 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
-        onHide={() => setToast({ ...toast, visible: false })} 
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
       />
 
-      <ConfirmModal 
+      <CancelModal
         visible={confirmVisible}
         onClose={() => setConfirmVisible(false)}
         onConfirm={executeCancel}
         title="Cancel Booking?"
         message={`Are you sure you want to cancel your booking at ${bookingData?.tenant?.storeName || 'the store'} on ${dateStr} at ${timeStr}?`}
-        confirmLabel="Yes, Cancel"
-        cancelLabel="Keep Booking"
         policyInfo={CANCELLATION_POLICY}
+        onOpenPolicy={(url, title) => navigation.navigate('WebViewScreen', { url, title })}
       />
     </SafeAreaView>
   );
@@ -337,7 +337,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   directionsBtnText: { fontSize: 14, fontWeight: '700', color: Theme.colors.primary },
 
   sectionTitle: { fontSize: 12, fontWeight: '800', color: Theme.colors.textSecondary, marginBottom: 10, marginLeft: 4, letterSpacing: 1 },
-  
+
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
   infoLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   infoLabel: { fontSize: 14, fontWeight: '600', color: Theme.colors.textSecondary },
@@ -352,8 +352,8 @@ const getStyles = (Theme: any) => StyleSheet.create({
   totalValue: { color: Theme.colors.primary, fontSize: 20, fontWeight: '900' },
 
   notesText: { fontSize: 14, color: Theme.colors.textSecondary, lineHeight: 22, fontStyle: 'italic' },
-  
-  cancelBtn: { 
+
+  cancelBtn: {
     marginHorizontal: 4, height: 54, borderRadius: 16, borderWidth: 1, borderColor: '#f43f5e',
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#f43f5e1A', marginTop: 10
   },

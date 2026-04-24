@@ -73,7 +73,7 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
       console.log("Transaction History", res.data);
       if (res.data && res.data.success) {
         // Sort by date: Newest (Last) to Oldest (First)
-        const sortedPayments = (res.data.data?.data || []).sort((a: PaymentItem, b: PaymentItem) => 
+        const sortedPayments = (res.data.data?.data || []).sort((a: PaymentItem, b: PaymentItem) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setPayments(sortedPayments);
@@ -85,16 +85,6 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
       setTimeout(() => setLoading(false), 800);
     }
   };
-
-  const formatCurrency = (amount: number, currency: string) => {
-    const value = amount / 100;
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
@@ -130,20 +120,14 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
       <View style={styles.paymentCard}>
         <View style={styles.cardHeader}>
           <View style={styles.storeInfo}>
-            <View style={styles.storeIconBg}>
-              <Icon name="pets" size={18} color={Theme.colors.primary} />
-            </View>
+            <View style={styles.storeIconBg}><Icon name="pets" size={18} color={Theme.colors.primary} /></View>
             <View>
-              <Text style={styles.storeName} numberOfLines={1}>
-                {item.tenant?.storeName || 'PawNest Store'}
-              </Text>
+              <Text style={styles.storeName} numberOfLines={1}>{item.tenant?.storeName || 'PawNest Store'}</Text>
               <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
           </View>
         </View>
 
@@ -163,12 +147,8 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
         <View style={styles.cardFooter}>
           <View style={styles.amountContainer}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.amountText}>{formatCurrency(item.amount, item.currency)}</Text>
+            <Text style={styles.amountText}>{item.amount}</Text>
           </View>
-          <TouchableOpacity style={styles.receiptBtn}>
-            <Icon name="chevron_right" size={16} color={Theme.colors.primary} />
-            <Text style={styles.receiptText}>Details</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -177,27 +157,19 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
-
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Icon name="back" size={20} color={Theme.colors.text} />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}><Icon name="back" size={20} color={Theme.colors.text} /></TouchableOpacity>
         <Text style={styles.headerTitle}>Transaction History</Text>
         <View style={styles.headerRight} />
       </View>
-
       {loading ? (
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.listHeader}>Recent Transactions</Text>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <TransactionCardSkeleton key={i} />
-          ))}
+          {[1, 2, 3, 4, 5].map((i) => (<TransactionCardSkeleton key={i} />))}
         </ScrollView>
       ) : payments.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Icon name="bookings" size={40} color={Theme.colors.textSecondary} />
-          </View>
+          <View style={styles.emptyIconCircle}><Icon name="bookings" size={40} color={Theme.colors.textSecondary} /></View>
           <Text style={styles.emptyTitle}>No Transactions Yet</Text>
           <Text style={styles.emptySubtitle}>Your transaction history will appear here once you make a booking.</Text>
         </View>
@@ -208,9 +180,7 @@ export default function PaymentHistoryScreen({ navigation }: Props) {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={() => (
-            <Text style={styles.listHeader}>Recent Transactions</Text>
-          )}
+          ListHeaderComponent={() => (<Text style={styles.listHeader}>Recent Transactions</Text>)}
         />
       )}
     </SafeAreaView>
@@ -230,7 +200,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   listHeader: { fontSize: 16, fontWeight: '700', color: Theme.colors.text, marginBottom: 16, paddingHorizontal: 4 },
   listContent: { padding: 20, paddingBottom: 40 },
-  
+
   paymentCard: {
     backgroundColor: Theme.colors.white,
     borderRadius: 20,
@@ -249,7 +219,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   storeIconBg: { width: 40, height: 40, borderRadius: 12, backgroundColor: Theme.colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   storeName: { fontSize: 16, fontWeight: '700', color: Theme.colors.text, marginBottom: 4 },
   dateText: { fontSize: 12, color: Theme.colors.textSecondary, fontWeight: '500' },
-  
+
   statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   statusText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
@@ -260,25 +230,25 @@ const getStyles = (Theme: any) => StyleSheet.create({
   detailLabel: { fontSize: 13, color: Theme.colors.textSecondary, fontWeight: '500' },
   detailValue: { fontSize: 13, color: Theme.colors.text, fontWeight: '600' },
 
-  cardFooter: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingTop: 16, 
-    borderTopWidth: 1, 
-    borderTopColor: Theme.colors.border + '50' 
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border + '50'
   },
   amountContainer: { flex: 1 },
   totalLabel: { fontSize: 11, color: Theme.colors.textSecondary, fontWeight: '600', marginBottom: 2, textTransform: 'uppercase' },
   amountText: { fontSize: 18, fontWeight: '800', color: Theme.colors.primary },
-  
-  receiptBtn: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: Theme.colors.primary + '10', 
-    paddingHorizontal: 12, 
-    paddingVertical: 8, 
-    borderRadius: 10 
+
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10
   },
   receiptText: { fontSize: 13, fontWeight: '700', color: Theme.colors.primary, marginLeft: 6 },
 

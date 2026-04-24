@@ -85,8 +85,6 @@ export default function SettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Account Section */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('ForgotPassword', { returnTo: 'Settings' })}>
@@ -99,7 +97,6 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Preferences Section */}
         <Text style={styles.sectionTitle}>Preferences</Text>
         <View style={styles.card}>
           <View style={styles.row}>
@@ -116,6 +113,25 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text style={styles.rowTitle}>Language</Text>
             <Text style={styles.rowSubtitle}>English (US) Only</Text>
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <View style={styles.card}>
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/terms', title: 'Terms of Service' })}
+          >
+            <Text style={styles.rowTitle}>Terms of Service</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/privacy', title: 'Privacy Policy' })}
+          >
+            <Text style={styles.rowTitle}>Privacy Policy</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Support</Text>
@@ -143,13 +159,11 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Account Actions Section */}
         <View style={[styles.card, { marginTop: 24, marginBottom: 20 }]}>
           <TouchableOpacity style={styles.row} onPress={handleLogout}>
               <Text style={[styles.rowTitle, { color: Theme.colors.primary, textAlign: 'center', flex: 1 }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,5 +1,5 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, BackHandler } from 'react-native';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, BackHandler, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -13,6 +13,8 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const { date, time, shopName, serviceTitle, bookingId, amount } = route.params;
 
+  const [isProcessing, setIsProcessing] = useState(true);
+
   const handleBack = useCallback(() => {
     // For confirmation, always go back to Home screen to prevent returning to payment
     navigation.navigate('MainTabs');
@@ -24,7 +26,15 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
     navigation.setOptions({ gestureEnabled: false });
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBack);
-    return () => backHandler.remove();
+    
+    const timer = setTimeout(() => {
+      setIsProcessing(false);
+    }, 1500);
+
+    return () => {
+      backHandler.remove();
+      clearTimeout(timer);
+    };
   }, [handleBack, navigation]);
 
   const displayTime = useMemo(() => {
@@ -40,6 +50,19 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
       return time;
     }
   }, [time]);
+
+  if (isProcessing) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor={Theme.colors.background} />
+        <View style={styles.processingContainer}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={styles.processingTitle}>Finalizing Booking...</Text>
+          <Text style={styles.processingSubtitle}>Please wait a moment while we confirm your appointment.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -95,13 +118,6 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.historyBtn}
-            onPress={() => navigation.navigate('PaymentHistory')}
-          >
-            <Text style={styles.historyBtnText}>View Payment History</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
             style={styles.homeBtn}
             onPress={() => navigation.navigate('MainTabs')}
           >
@@ -116,6 +132,9 @@ export default function BookingConfirmationScreen({ route, navigation }: Props) 
 const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
   container: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
+  processingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
+  processingTitle: { fontSize: 20, fontWeight: '800', color: Theme.colors.text, marginTop: 24, marginBottom: 8 },
+  processingSubtitle: { fontSize: 14, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   
   iconContainer: { marginBottom: 30 },
   successCircle: {

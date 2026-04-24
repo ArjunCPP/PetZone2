@@ -21,7 +21,8 @@ const linking = {
     'pawnest://',
     'https://pawnest.com',
     'petzone://',
-    'https://petzone.com'
+    'https://petzone.com',
+    'https://petzone.quantuver-wizards.site'
   ],
   config: {
     screens: {

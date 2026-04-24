@@ -145,6 +145,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.name}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="Email Address"
@@ -155,6 +156,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.email}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="Phone Number"
@@ -165,6 +167,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.phone}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="Password"
@@ -177,6 +180,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.password}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="Confirm Password"
@@ -187,6 +191,7 @@ export default function RegisterScreen({ navigation }: Props) {
               error={errors.confirmPassword}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
 
             <TouchableOpacity

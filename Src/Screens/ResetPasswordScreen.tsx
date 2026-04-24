@@ -148,6 +148,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
               error={errors.otp}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="New Password"
@@ -160,6 +161,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
               error={errors.password}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
             <InputGroup
               label="Confirm Password"
@@ -170,6 +172,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
               error={errors.confirmPassword}
               styles={styles}
               Theme={Theme}
+              editable={!loading}
             />
 
             {/* ── CTA Button ─────────────────── */}

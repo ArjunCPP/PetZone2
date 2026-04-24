@@ -158,10 +158,6 @@ export const Icon: React.FC<IconProps> = ({
 
   return (
     <View style={[styles.container, { width: size, height: size }, style]}>
-      {/* 
-        For Google, we don't want to force a fill color if it's multi-colored.
-        If a color is explicitly passed AND it's not a multi-color icon, use it.
-      */}
       {name === 'google' ? (
         <SvgIcon width={size} height={size} />
       ) : (

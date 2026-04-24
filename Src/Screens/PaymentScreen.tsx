@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, StatusBar, BackHandler, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation/types';
@@ -17,6 +17,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const { date, time, price, serviceTitle, shopName, bookingId } = route.params;
+  const [loading, setLoading] = useState(false);
 
   const handleBack = useCallback(() => {
     // User preferred: Go back 2 steps to Time Slot Selection
@@ -47,6 +48,8 @@ export default function PaymentScreen({ route, navigation }: Props) {
   }, [time]);
 
   const handlePayment = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
       // 1. First call paymentOrder API to get order details
       console.log("🚀 [PaymentOrder] Calling API for booking:", bookingId);
@@ -55,6 +58,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
 
       if (!orderRes.data || !orderRes.data.success) {
         Alert.alert('Error', 'Unable to initiate payment. Please try again.');
+        setLoading(false);
         return;
       }
 
@@ -65,6 +69,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
       if (!razorpayOrderId) {
         console.error("❌ [PaymentOrder] Failed to find Order ID in response:", orderData);
         Alert.alert('Payment Error', 'Failed to initialize payment order. Please try again.');
+        setLoading(false);
         return;
       }
 
@@ -104,6 +109,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
         console.log("🏁 [PaymentVerify] Response:", JSON.stringify(verifyRes.data, null, 2));
 
         if (verifyRes.data && verifyRes.data.success) {
+          // Keep loading true while navigating to prevent double taps
           navigation.navigate('BookingConfirmation', {
             shopId: route.params.shopId,
             shopName: shopName || 'PawNest Partner',
@@ -114,9 +120,11 @@ export default function PaymentScreen({ route, navigation }: Props) {
             bookingId: data.razorpay_payment_id
           });
         } else {
-          navigation.navigate('BookingFailed', { bookingId });
+          setLoading(false);
+          Alert.alert('Payment Failed', 'We could not verify your payment. Please try again.');
         }
       }).catch(async (error: any) => {
+        setLoading(false);
         // Razorpay Failure or Cancel
         console.log("❌ Razorpay Error:", JSON.stringify(error, null, 2));
         
@@ -124,11 +132,12 @@ export default function PaymentScreen({ route, navigation }: Props) {
           Alert.alert('Payment Cancelled', 'Transaction was cancelled by user.');
         } else {
           // Even on failure, we can call verify if we have data, 
-          // but usually we just navigate to failure if the modal fails.
-          navigation.navigate('BookingFailed', { bookingId });
+          // but usually we just stay on the screen and show an error.
+          Alert.alert('Payment Failed', 'Something went wrong while processing your payment. Please try again.');
         }
       });
     } catch (apiError: any) {
+      setLoading(false);
       console.log('❌ Payment Step Error:', apiError.response?.data || apiError.message);
       Alert.alert('Error', 'Something went wrong during payment initialization.');
     }
@@ -144,6 +153,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
           <TouchableOpacity 
             onPress={handleBack} 
             style={styles.iconBtn}
+            disabled={loading}
           >
             <Icon name="back" size={20} color={Theme.colors.text} />
           </TouchableOpacity>
@@ -207,13 +217,22 @@ export default function PaymentScreen({ route, navigation }: Props) {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={styles.payBtn} 
+          style={[styles.payBtn, loading && { opacity: 0.8 }]} 
           onPress={handlePayment}
+          disabled={loading}
+          activeOpacity={0.8}
         >
-          <Text style={styles.payBtnText}>Confirm & Pay ₹{total}</Text>
+          {loading ? (
+            <ActivityIndicator color={Theme.colors.white} />
+          ) : (
+            <Text style={styles.payBtnText}>Confirm & Pay ₹{total}</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('MainTabs')}>
-          <Text style={styles.cancelBtn}>Cancel Booking</Text>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('MainTabs')}
+          disabled={loading}
+        >
+          <Text style={[styles.cancelBtn, loading && { opacity: 0.5 }]}>Cancel Booking</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

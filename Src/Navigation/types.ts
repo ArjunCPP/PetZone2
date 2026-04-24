@@ -22,4 +22,5 @@ export type RootStackParamList = {
   BookingFailed:       { bookingId: string };
   BookingDetail:       { bookingData: any };
   HelpCenter:          undefined;
+  WebViewScreen:       { url: string; title?: string };
 };

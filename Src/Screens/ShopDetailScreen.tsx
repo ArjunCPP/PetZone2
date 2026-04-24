@@ -232,10 +232,10 @@ export default function ShopDetailScreen({ route, navigation }: Props) {
 
   const handleShare = async () => {
     try {
-      const webUrl = `https://pawnest.com/shop/${shopId}`;
-      const deepLink = `pawnest://shop/${shopId}`;
+      const webUrl = `https://petzone.quantuver-wizards.site/shop/${shopId}`;
+      const deepLink = `petzone://shop/${shopId}`;
       const result = await Share.share({
-        message: `Check out ${currentShop?.storeName || 'this pet shop'} on PawNest!\n\nOpen in App: ${deepLink}\nWeb Link: ${webUrl}`,
+        message: `Check out ${currentShop?.storeName || 'this pet shop'} on PetZone!\n\nOpen in App: ${deepLink}\nWeb Link: ${webUrl}`,
         url: webUrl,
       });
     } catch (error: any) {

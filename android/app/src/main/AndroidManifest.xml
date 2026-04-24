@@ -30,7 +30,16 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
-        <!-- PawNest App Links (HTTPS - requires assetlinks.json on server) -->
+        <!-- PetZone App Links (HTTPS/HTTP) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" android:host="petzone.quantuver-wizards.site" android:pathPrefix="/shop" />
+            <data android:scheme="https" android:host="petzone.quantuver-wizards.site" android:pathPrefix="/shop" />
+        </intent-filter>
+
+        <!-- Legacy PawNest App Links -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
@@ -38,19 +47,12 @@
             <data android:scheme="https" android:host="pawnest.com" android:pathPrefix="/shop" />
         </intent-filter>
 
-        <!-- PawNest Custom Scheme (Local Deep Link - No verification needed) -->
+        <!-- Custom Schemes (Local Deep Link - No verification needed) -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="pawnest" android:host="shop" />
-        </intent-filter>
-
-        <!-- Legacy PetZone Custom Scheme -->
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="petzone" android:host="shop" />
         </intent-filter>
       </activity>

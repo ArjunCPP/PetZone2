@@ -133,7 +133,7 @@ export default function OtpScreen({ route, navigation }: Props) {
           </Text>
 
           <View style={styles.otpWrapper}>
-            <OtpInput length={OTP_LENGTH} value={otp} onChange={setOtp} />
+            <OtpInput length={OTP_LENGTH} value={otp} onChange={setOtp} editable={!loading} />
           </View>
 
           <View style={styles.timerContainer}>

@@ -66,13 +66,6 @@ export default function BookingFailedScreen({ route, navigation }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.historyBtn}
-            onPress={() => navigation.navigate('PaymentHistory' as any)}
-          >
-            <Text style={styles.historyBtnText}>View Payment History</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
             style={styles.homeBtn}
             onPress={() => navigation.navigate('MainTabs')}
           >

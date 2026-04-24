@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, RefreshControl, Animated, FlatList, Dimensions, ActivityIndicator, StatusBar, Alert, Pressable, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, RefreshControl, Animated, FlatList, ActivityIndicator, StatusBar, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../ThemeContext';
@@ -7,11 +7,10 @@ import { Icon, IconName } from '../Components/Icon';
 import ShopCard from '../Components/ShopCard';
 import { HOME_GROOMING_SHOP } from '../Assets';
 import authApi from '../Api';
-import { useLocation } from '../LocationContext';
 import { ShopCardSkeleton, BannerSkeleton, CategorySkeleton } from '../Components/Skeleton';
 import { notificationService } from '../Services/NotificationService';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Screen width is now read dynamically inside the component via useWindowDimensions
 
 // Statics deleted
 
@@ -27,7 +26,8 @@ const TOTAL_HEADER_HEIGHT = HEADER_TOP_HEIGHT + SEARCH_BOX_HEIGHT + ROW_GAP;
 export default function HomeScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const { theme: Theme } = useAppTheme();
-  const styles = useMemo(() => getStyles(Theme, insets), [Theme, insets]);
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = useMemo(() => getStyles(Theme, insets, screenWidth), [Theme, insets, screenWidth]);
   const [shops, setShops] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -40,13 +40,6 @@ export default function HomeScreen({ navigation }: any) {
   const [fetchingBanners, setFetchingBanners] = useState(true);
   const [dynamicServices, setDynamicServices] = useState<any[]>([]);
   const [isFiltering, setIsFiltering] = useState(false);
-  const {
-    userLocation,
-    coords,
-    isLocating,
-    isDeviceLocationOn,
-    refreshLocation
-  } = useLocation();
 
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -161,23 +154,9 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  const handleServicePress = async (service: any) => {
-    try {
-      setIsFiltering(true);
-      console.log('🚀 Filtering Shops by Service:', service.name);
-
-      const response = await authApi.tenantsList({ serviceName: service.name });
-      console.log('✅ Filtered Shops Response:', response.data);
-
-      if (response.data?.success) {
-        const shopsList = response.data?.data?.data || response.data?.data || [];
-        setShops(shopsList);
-      }
-    } catch (error: any) {
-      console.log('❌ Filter Shops Error:', error.response?.data || error.message);
-    } finally {
-      setIsFiltering(false);
-    }
+  const handleServicePress = (service: any) => {
+    console.log('🚀 Navigating to Search for Service:', service.name);
+    navigation.navigate('Search', { initialSearch: service.name });
   };
 
   useEffect(() => {
@@ -255,30 +234,6 @@ export default function HomeScreen({ navigation }: any) {
     );
   };
 
-  const renderLocationRow = () => (
-    <View style={styles.locationContainer}>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={refreshLocation}
-        style={styles.locationInner}
-        disabled={isLocating}
-      >
-        <Icon
-          name="location"
-          size={18}
-          color={Theme.colors.primary}
-        />
-        <View style={styles.locationTextContainer}>
-          <Text style={styles.locationLabel}>Current Location</Text>
-          <Text style={styles.locationValue} numberOfLines={1}>
-            {isLocating ? 'Detecting...' : userLocation}
-          </Text>
-        </View>
-        <Icon name="back" size={14} color="#999" style={{ transform: [{ rotate: '-180deg' }] }} />
-      </TouchableOpacity>
-    </View>
-  );
-
   const renderFlashCarousel = () => (
     <View style={styles.carouselContainer}>
       {fetchingBanners ? (
@@ -293,13 +248,13 @@ export default function HomeScreen({ navigation }: any) {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(e) => {
-              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
               setBannerIndex(index);
             }}
             renderItem={({ item }) => (
-              <TouchableOpacity activeOpacity={0.9} style={styles.bannerWrapper} onPress={() => navigation.navigate('Offers')}>
+              <View style={styles.bannerWrapper}>
                 <Image source={{ uri: item.images?.[0]?.url }} style={styles.bannerImage} resizeMode="cover" />
-              </TouchableOpacity>
+              </View>
             )}
           />
           <View style={styles.pagination}>
@@ -419,7 +374,6 @@ export default function HomeScreen({ navigation }: any) {
             />
           }
         >
-          {renderLocationRow()}
           {renderFlashCarousel()}
 
           <View style={styles.sectionHeader}>
@@ -478,7 +432,7 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-const getStyles = (Theme: any, insets: any) => StyleSheet.create({
+const getStyles = (Theme: any, insets: any, screenWidth: number) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.primary },
   container: { flex: 1, backgroundColor: Theme.colors.primary },
 
@@ -524,7 +478,7 @@ const getStyles = (Theme: any, insets: any) => StyleSheet.create({
     paddingHorizontal: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#333', marginLeft: 12, height: '100%' },
+  searchInput: { flex: 1, fontSize: 15, color: '#333', marginLeft: 12, paddingVertical: 0 },
   vDivider: { width: 1, height: 20, backgroundColor: '#EEE' },
   qrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', paddingBottom: 2 },
   notifBadge: {
@@ -559,8 +513,8 @@ const getStyles = (Theme: any, insets: any) => StyleSheet.create({
   categoryName: { fontSize: 11, fontWeight: '700', color: Theme.colors.text, textAlign: 'center' },
 
   // Carousel
-  carouselContainer: { width: SCREEN_WIDTH, height: 194, marginTop: 8 },
-  bannerWrapper: { width: SCREEN_WIDTH, paddingHorizontal: 16 },
+  carouselContainer: { width: screenWidth, height: 194, marginTop: 8 },
+  bannerWrapper: { width: screenWidth, paddingHorizontal: 16 },
   bannerImage: { width: '100%', height: 164, borderRadius: 20 },
   pagination: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 6 },
   paginationDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Theme.colors.border },
@@ -575,46 +529,8 @@ const getStyles = (Theme: any, insets: any) => StyleSheet.create({
   shopsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   featuredWrapper: { width: '100%', marginBottom: 20 },
   gridWrapper: {
-    width: (SCREEN_WIDTH - 44) / 2,
+    width: (screenWidth - 44) / 2,
     marginBottom: 16,
-  },
-
-  // Simple Location Styles
-  locationContainer: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  locationInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 14,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  locationTextContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  locationLabel: {
-    fontSize: 10,
-    color: '#999',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  locationValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
   },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },

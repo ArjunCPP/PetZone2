@@ -31,6 +31,7 @@ import PaymentHistoryScreen from '../Screens/PaymentHistoryScreen';
 import BookingFailedScreen from '../Screens/BookingFailedScreen';
 import BookingDetailScreen from '../Screens/BookingDetailScreen';
 import HelpCenterScreen from '../Screens/HelpCenterScreen';
+import WebViewScreen from '../Screens/WebViewScreen';
 
 import { RootStackParamList } from './types';
 
@@ -65,6 +66,7 @@ export default function StackNavigation() {
       <Stack.Screen name="BookingFailed"       component={BookingFailedScreen} />
       <Stack.Screen name="BookingDetail"       component={BookingDetailScreen} />
       <Stack.Screen name="HelpCenter"          component={HelpCenterScreen} />
+      <Stack.Screen name="WebViewScreen"       component={WebViewScreen} />
     </Stack.Navigator>
   );
 }

@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ImageSourcePropType, ActivityIndicator, Animated, Platform, Pressable } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ImageSourcePropType, ActivityIndicator, Animated, Pressable } from 'react-native';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from './Icon';
 
@@ -19,161 +19,88 @@ interface Props {
 
 export default function ShopCard({ 
   name, distance, rating, tags, image, logo,
-  onBook, onRemove, isRemoving, variant = 'featured',
-  about
+  onBook, onRemove, isRemoving, variant = 'featured', about 
 }: Props) {
   const { theme: Theme } = useAppTheme();
-  const styles = useMemo(() => getStyles(Theme, variant), [Theme, variant]);
-  
   const isGrid = variant === 'grid';
+  const styles = useMemo(() => getStyles(Theme, isGrid), [Theme, isGrid]);
 
-  // --- ANIMATIONS ---
-  const zoomAnim = useRef(new Animated.Value(1.1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const pressAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    // Entry Animation (Zoom + Fade)
-    Animated.parallel([
-      Animated.timing(zoomAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      })
-    ]).start();
-
-    // Constant Logo Pulse
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        })
-      ])
-    ).start();
-  }, []);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Animated.spring(pressAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      speed: 50,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true }).start();
   };
-
+  
   const handlePressOut = () => {
-    Animated.spring(pressAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 10,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 5 }).start();
   };
 
   return (
-    <Pressable 
-      onPress={onBook}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={{ width: '100%', marginBottom: 4 }}
-    >
-      <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ scale: pressAnim }] }]}>
-        <View style={styles.imageContainer}>
-          {/* Animated Background Cover */}
-          <Animated.View style={{ flex: 1, transform: [{ scale: zoomAnim }] }}>
-            {image ? (
-              <Image source={image} style={styles.shopImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.shopImagePlaceholder}>
-                <Text style={styles.shopImageEmoji}>🏪</Text>
-              </View>
-            )}
-          </Animated.View>
-          
-          {/* Overlay Badges */}
-          <View style={styles.topOverlay}>
-            {!isGrid && (
-              <View style={styles.trendingBadge}>
-                <Icon name="trending" size={10} color="#FFF" />
-                <Text style={styles.trendingText}>TRENDING</Text>
-              </View>
-            )}
-
-            {rating > 0 && (
-              <View style={styles.ratingBadge}>
-                <Icon name="star" size={isGrid ? 10 : 14} color="#F4C430" />
-                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-              </View>
-            )}
-          </View>
-
-          {onRemove && !isGrid && (
-            <TouchableOpacity 
-              style={styles.removeBadge} 
-              onPress={(e) => {
-                e.stopPropagation();
-                onRemove?.();
-              }} 
-              disabled={isRemoving} 
-              activeOpacity={0.8}
-            >
-              {isRemoving ? <ActivityIndicator size="small" color="#FF5252" /> : <Icon name="close" size={16} color="#FF5252" />}
-            </TouchableOpacity>
+    <Pressable onPress={onBook} onPressIn={handlePressIn} onPressOut={handlePressOut} style={{ width: '100%', paddingBottom: 8 }}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        
+        {/* --- IMAGE SECTION --- */}
+        <View style={styles.imageCover}>
+          {image ? (
+            <Image source={image} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={[styles.image, styles.placeholder]}><Text style={{fontSize: 40}}>🏪</Text></View>
           )}
+
+          {/* OVERLAYS */}
+          <View style={styles.overlayTop}>
+            {!isGrid && (
+              <View style={styles.badgePrimary}>
+                <Icon name="trending" size={10} color="#FFF" />
+                <Text style={styles.badgePrimaryText}>FEATURED</Text>
+              </View>
+            )}
+            <View style={{flex: 1}} />
+            {rating > 0 && (
+              <View style={styles.badgeRating}>
+                <Icon name="star" size={10} color="#FFB300" />
+                <Text style={styles.badgeRatingText}>{rating.toFixed(1)}</Text>
+              </View>
+            )}
+            {onRemove && (
+              <TouchableOpacity style={styles.removeBtn} onPress={(e) => { e.stopPropagation(); onRemove(); }}>
+                {isRemoving ? <ActivityIndicator size="small" color="#FF5252" /> : <Icon name="close" size={12} color="#FFF" />}
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* OVERLAPPING LOGO / PROFILE PICTURE */}
-        <View style={styles.logoWrapper}>
-          <Animated.View style={[styles.logoOutline, { transform: [{ scale: pulseAnim }] }]}>
-            <View style={styles.logoInner}>
-              {logo ? (
-                <Image source={logo} style={styles.shopLogo} resizeMode="cover" />
-              ) : (
-                <View style={styles.shopLogoPlaceholder}>
-                  <Text style={{ fontSize: isGrid ? 12 : 16 }}>🐾</Text>
-                </View>
-              )}
-            </View>
-          </Animated.View>
-        </View>
-
-        <View style={styles.body}>
-          <View style={isGrid ? styles.titleCol : styles.headerRow}>
+        {/* --- CONTENT SECTION --- */}
+        <View style={styles.content}>
+          <View style={styles.header}>
+            {!isGrid && logo && (
+              <View style={styles.logoContainer}>
+                <Image source={logo} style={styles.logo} resizeMode="cover" />
+              </View>
+            )}
             <View style={styles.titleContainer}>
-              <Text style={styles.shopName} numberOfLines={1}>{name}</Text>
-              <View style={styles.distanceRow}>
-                <Icon name="location" size={12} color={Theme.colors.textSecondary} />
-                <Text style={styles.distanceText}>{distance}</Text>
+              <Text style={styles.title} numberOfLines={1}>{name}</Text>
+              <View style={styles.locationRow}>
+                <Icon name="location" size={10} color={Theme.colors.textSecondary} />
+                <Text style={styles.locationText} numberOfLines={1}>{distance}</Text>
               </View>
             </View>
           </View>
 
-          {/* About Snippet */}
-          <Text style={styles.aboutSnippet} numberOfLines={isGrid ? 1 : 2}>
-            {about || "Experience premium pet grooming and care services tailored for your furry friends."}
-          </Text>
+          {!isGrid && about && (
+            <Text style={styles.about} numberOfLines={2}>{about}</Text>
+          )}
 
-          <View style={styles.detailsRow}>
-            <View style={styles.tagsContainer}>
+          <View style={styles.footer}>
+            <View style={styles.tags}>
               {tags.slice(0, isGrid ? 1 : 2).map((tag, i) => (
-                <View key={tag + i} style={styles.tagBadge}>
-                  <Text style={styles.tagText}>{tag.toUpperCase()}</Text>
+                <View key={i} style={styles.tag}>
+                  <Text style={styles.tagText} numberOfLines={1}>{tag}</Text>
                 </View>
               ))}
             </View>
-            <TouchableOpacity style={styles.bookBtn} onPress={onBook} activeOpacity={0.85}>
+
+            <TouchableOpacity style={styles.bookBtn} onPress={onBook} activeOpacity={0.8}>
               <Text style={styles.bookBtnText}>{isGrid ? 'BOOK' : 'BOOK NOW'}</Text>
             </TouchableOpacity>
           </View>
@@ -183,162 +110,178 @@ export default function ShopCard({
   );
 }
 
-const getStyles = (Theme: any, variant: 'featured' | 'grid') => {
-  const isGrid = variant === 'grid';
-  
-  return StyleSheet.create({
-    card: { 
-      backgroundColor: Theme.colors.white, borderRadius: 28, 
-      overflow: 'visible',
-      shadowColor: '#000', 
-      shadowOpacity: isGrid ? 0.08 : 0.12, 
-      shadowOffset: { width: 0, height: isGrid ? 4 : 8 }, 
-      shadowRadius: isGrid ? 8 : 16, 
-      elevation: isGrid ? 4 : 8, 
-      borderWidth: 1, borderColor: '#F0F0F0',
-      width: '100%',
-    },
-    imageContainer: { 
-      width: '100%', 
-      height: isGrid ? 110 : 180, 
-      backgroundColor: '#F5F7FA', 
-      position: 'relative',
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      overflow: 'hidden',
-    },
-    shopImage: { width: '100%', height: '100%' },
-    shopImagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    shopImageEmoji: { fontSize: isGrid ? 32 : 48 },
-    
-    topOverlay: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      right: 10,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    trendingBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Theme.colors.primary,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 20,
-      gap: 4,
-    },
-    trendingText: { fontSize: 9, fontWeight: '900', color: Theme.colors.white, letterSpacing: 0.5 },
-    
-    ratingBadge: { 
-      flexDirection: 'row', alignItems: 'center', 
-      backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 12, 
-      paddingHorizontal: 8, paddingVertical: 4, gap: 4,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4,
-    },
-    ratingText: { fontSize: isGrid ? 10 : 12, fontWeight: '800', color: Theme.colors.text },
-    
-    removeBadge: {
-      position: 'absolute', top: 10, right: 10, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 10,
-      width: 32, height: 32, zIndex: 30
-    },
-
-    // Logo Overlap Styles
-    logoWrapper: {
-      position: 'absolute',
-      top: isGrid ? 85 : 150, // Overlapping height
-      left: 16,
-      zIndex: 20,
-    },
-    logoOutline: {
-      padding: 3,
-      backgroundColor: '#FFF',
-      borderRadius: isGrid ? 18 : 24,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
-    },
-    logoInner: {
-      width: isGrid ? 32 : 48,
-      height: isGrid ? 32 : 48,
-      borderRadius: isGrid ? 16 : 24,
-      backgroundColor: '#F5F7FA',
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: '#EEE',
-    },
-    shopLogo: { width: '100%', height: '100%' },
-    shopLogoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
-    body: { 
-      paddingTop: isGrid ? 16 : 24, // Space for logo overlap
-      paddingHorizontal: 16,
-      paddingBottom: 16,
-      gap: 10 
-    },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    titleCol: { gap: 4 },
-    titleContainer: { flex: 1 },
-    shopName: { 
-      fontSize: isGrid ? 15 : 19, 
-      fontWeight: '900', 
-      color: Theme.colors.text, 
-      fontFamily: Theme.typography.fontFamily,
-      letterSpacing: -0.5,
-    },
-    distanceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-    distanceText: { 
-      fontSize: isGrid ? 11 : 13, 
-      color: Theme.colors.textSecondary, 
-      fontFamily: Theme.typography.fontFamily,
-      fontWeight: '600'
-    },
-    
-    aboutSnippet: {
-      fontSize: isGrid ? 10 : 12,
-      color: Theme.colors.textSecondary,
-      lineHeight: isGrid ? 14 : 18,
-      fontFamily: Theme.typography.fontFamily,
-    },
-
-    detailsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: 2,
-    },
-    tagsContainer: { flexDirection: 'row', gap: 6 },
-    tagBadge: { 
-      backgroundColor: '#F0F4F8', 
-      borderRadius: 8, 
-      paddingHorizontal: 8, 
-      paddingVertical: 4 
-    },
-    tagText: { 
-      fontSize: 8, 
-      fontWeight: '800', 
-      color: '#52606D', 
-      fontFamily: Theme.typography.fontFamily, 
-      letterSpacing: 0.3 
-    },
-    bookBtn: { 
-      backgroundColor: Theme.colors.primary, 
-      borderRadius: 12, 
-      paddingVertical: isGrid ? 8 : 10, 
-      paddingHorizontal: isGrid ? 14 : 20,
-      alignItems: 'center',
-      shadowColor: Theme.colors.primary, 
-      shadowOffset: { width: 0, height: 4 }, 
-      shadowOpacity: 0.2, 
-      shadowRadius: 8, 
-      elevation: 4,
-    },
-    bookBtnText: { 
-      color: Theme.colors.white, 
-      fontSize: isGrid ? 10 : 12, 
-      fontWeight: '800', 
-      letterSpacing: 0.5, 
-      fontFamily: Theme.typography.fontFamily 
-    },
-  });
-};
+const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#F0F2F5',
+  },
+  imageCover: {
+    width: '100%',
+    height: isGrid ? 110 : 160,
+    backgroundColor: '#F7F9FC',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayTop: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  badgePrimary: {
+    backgroundColor: Theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgePrimaryText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  badgeRating: {
+    backgroundColor: 'rgba(25, 28, 33, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgeRatingText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  removeBtn: {
+    backgroundColor: 'rgba(255, 82, 82, 0.9)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  content: {
+    padding: isGrid ? 12 : 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: isGrid ? 8 : 12,
+    gap: 12,
+  },
+  logoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    padding: 2,
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  titleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: isGrid ? 14 : 17,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    marginBottom: 4,
+    letterSpacing: -0.3,
+    fontFamily: Theme.typography.fontFamily,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    fontSize: isGrid ? 11 : 12,
+    color: Theme.colors.textSecondary,
+    fontWeight: '600',
+    fontFamily: Theme.typography.fontFamily,
+  },
+  about: {
+    fontSize: 12,
+    color: Theme.colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 16,
+    fontFamily: Theme.typography.fontFamily,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  tags: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tag: {
+    backgroundColor: '#F0F4F8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  tagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#4A5568',
+    textTransform: 'uppercase',
+    fontFamily: Theme.typography.fontFamily,
+  },
+  bookBtn: {
+    backgroundColor: Theme.colors.primary,
+    paddingHorizontal: isGrid ? 14 : 20,
+    paddingVertical: isGrid ? 8 : 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bookBtnText: {
+    color: '#FFF',
+    fontSize: isGrid ? 10 : 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    fontFamily: Theme.typography.fontFamily,
+  },
+});

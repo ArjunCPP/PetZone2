@@ -2,9 +2,9 @@ import React, { useMemo,  useRef } from 'react';
 import { View, TextInput, StyleSheet, NativeSyntheticEvent, TextInputKeyPressEventData } from 'react-native';
 import { useAppTheme } from '../ThemeContext';
 
-interface Props { length: number; value: string[]; onChange: (value: string[]) => void; }
+interface Props { length: number; value: string[]; onChange: (value: string[]) => void; editable?: boolean; }
 
-export default function OtpInput({ length, value, onChange }: Props) {
+export default function OtpInput({ length, value, onChange, editable = true }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const inputs = useRef<(TextInput | null)[]>([]);
@@ -38,6 +38,7 @@ export default function OtpInput({ length, value, onChange }: Props) {
           value={value[i]} 
           onChangeText={text => handleChange(text, i)} 
           onKeyPress={e => handleKeyPress(e, i)} 
+          editable={editable}
           caretHidden 
           selectTextOnFocus
         />

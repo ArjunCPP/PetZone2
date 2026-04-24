@@ -103,6 +103,7 @@ export default function ForgotPasswordScreen({ route, navigation }: Props) {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={(v) => { setEmail(v); setError(''); }}
+                  editable={!loading}
                 />
               </View>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}

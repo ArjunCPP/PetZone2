@@ -159,6 +159,7 @@ export default function LoginScreen({ navigation }: Props) {
                   value={email}
                   onChangeText={(v) => { setEmail(v); setErrors({ ...errors, email: '' }); }}
                   autoCorrect={false}
+                  editable={!loading}
                 />
               </View>
               {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
@@ -174,6 +175,7 @@ export default function LoginScreen({ navigation }: Props) {
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(v) => { setPassword(v); setErrors({ ...errors, password: '' }); }}
+                  editable={!loading}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Icon name={showPassword ? "eye_off" : "eye"} size={20} color={Theme.colors.textSecondary} />

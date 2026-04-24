@@ -59,7 +59,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   const menuItems: { id: string; title: string; subtitle: string; icon: IconName; route?: string }[] = [
     { id: '2', title: 'Saved Shops', subtitle: 'Your favorite grooming centers', icon: 'heart', route: 'SavedShops' },
-    { id: '3', title: 'Payment History', subtitle: 'View your transaction records', icon: 'offer', route: 'PaymentHistory' },
+    { id: '3', title: 'Transaction History', subtitle: 'View your transaction records', icon: 'offer', route: 'PaymentHistory' },
     { id: '7', title: 'Settings', subtitle: 'App preferences and notifications', icon: 'settings', route: 'Settings' },
     { id: '6', title: 'About PawNest', subtitle: 'App version & policies', icon: 'explore', route: 'About' },
   ];
