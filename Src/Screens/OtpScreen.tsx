@@ -85,7 +85,8 @@ export default function OtpScreen({ route, navigation }: Props) {
         } else {
           const token = response.data.data.accessToken;
           await Keychain.setGenericPassword('token', token);
-          navigation.replace('MainTabs');
+          
+          navigation.replace('Login');
         }
       } else {
         showToast(response.data.message || 'Verification failed', 'error');
@@ -231,7 +232,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     borderRadius: Theme.roundness.default, height: 56,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  verifyBtnText: { color: Theme.colors.white, fontSize: 16, fontWeight: '800', fontFamily: Theme.typography.fontFamily },
+  verifyBtnText: { color: Theme.colors.primaryText, fontSize: 16, fontWeight: '800', fontFamily: Theme.typography.fontFamily },
 });

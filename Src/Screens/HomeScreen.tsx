@@ -53,10 +53,11 @@ export default function HomeScreen({ navigation }: any) {
         StatusBar.setBackgroundColor(Theme.colors.primary);
       }
 
-      // 2. Fetch Notifications
+      // 2. Fetch Notifications & Listener
       notificationService.getUnreadCount().then(count => {
         setUnreadCount(count);
       });
+      const unsubscribeNotif = notificationService.onUnreadCountChange(setUnreadCount);
 
       // 3. Main Data Fetch
       fetchShops();
@@ -64,7 +65,7 @@ export default function HomeScreen({ navigation }: any) {
       fetchActiveOffers();
 
       return () => {
-        // Optional: Reset status bar if needed on unfocus
+        unsubscribeNotif();
       };
     }, [Theme])
   );
@@ -456,7 +457,7 @@ const getStyles = (Theme: any, insets: any, screenWidth: number) => StyleSheet.c
     width: 56,
     height: 56,
     borderRadius: 18, // Slightly larger icons
-    backgroundColor: '#FFF',
+    backgroundColor: Theme.colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -473,13 +474,13 @@ const getStyles = (Theme: any, insets: any, screenWidth: number) => StyleSheet.c
   },
   searchWrapper: {
     flex: 1, height: 48, borderRadius: 14,
-    backgroundColor: '#FFF',
+    backgroundColor: '#F5F7FA',
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#333', marginLeft: 12, paddingVertical: 0 },
-  vDivider: { width: 1, height: 20, backgroundColor: '#EEE' },
+  searchInput: { flex: 1, fontSize: 15, color: '#1A1C1E', marginLeft: 12, paddingVertical: 0 },
+  vDivider: { width: 1, height: 20, backgroundColor: Theme.colors.border },
   qrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', paddingBottom: 2 },
   notifBadge: {
     position: 'absolute',
@@ -493,7 +494,7 @@ const getStyles = (Theme: any, insets: any, screenWidth: number) => StyleSheet.c
     justifyContent: 'center',
     paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: '#FFF',
+    borderColor: Theme.colors.primary,
   },
   notifBadgeText: {
     color: '#FFF',

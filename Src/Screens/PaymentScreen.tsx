@@ -7,9 +7,9 @@ import { useAppTheme } from '../ThemeContext';
 import { PAYMENT_ORDER_IMAGE } from '../Assets';
 import { Icon } from '../Components/Icon';
 import RazorpayCheckout from 'react-native-razorpay';
-import { Alert } from 'react-native';
 import { RAZORPAY_CONFIG } from '../Constants/Config';
 import authApi from '../Api';
+import { Toast } from '../Components/Toast';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -18,6 +18,11 @@ export default function PaymentScreen({ route, navigation }: Props) {
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const { date, time, price, serviceTitle, shopName, bookingId } = route.params;
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, message, type });
+  };
 
   const handleBack = useCallback(() => {
     // User preferred: Go back 2 steps to Time Slot Selection
@@ -57,7 +62,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
       console.log("✅ [PaymentOrder] Response:", JSON.stringify(orderRes.data, null, 2));
 
       if (!orderRes.data || !orderRes.data.success) {
-        Alert.alert('Error', 'Unable to initiate payment. Please try again.');
+        showToast('Unable to initiate payment. Please try again.', 'error');
         setLoading(false);
         return;
       }
@@ -68,7 +73,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
 
       if (!razorpayOrderId) {
         console.error("❌ [PaymentOrder] Failed to find Order ID in response:", orderData);
-        Alert.alert('Payment Error', 'Failed to initialize payment order. Please try again.');
+        showToast('Failed to initialize payment order. Please try again.', 'error');
         setLoading(false);
         return;
       }
@@ -121,7 +126,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
           });
         } else {
           setLoading(false);
-          Alert.alert('Payment Failed', 'We could not verify your payment. Please try again.');
+          showToast('We could not verify your payment. Please try again.', 'error');
         }
       }).catch(async (error: any) => {
         setLoading(false);
@@ -129,17 +134,17 @@ export default function PaymentScreen({ route, navigation }: Props) {
         console.log("❌ Razorpay Error:", JSON.stringify(error, null, 2));
         
         if (error.code === 2) {
-          Alert.alert('Payment Cancelled', 'Transaction was cancelled by user.');
+          showToast('Transaction was cancelled by user.', 'error');
         } else {
           // Even on failure, we can call verify if we have data, 
           // but usually we just stay on the screen and show an error.
-          Alert.alert('Payment Failed', 'Something went wrong while processing your payment. Please try again.');
+          showToast('Something went wrong while processing your payment. Please try again.', 'error');
         }
       });
     } catch (apiError: any) {
       setLoading(false);
       console.log('❌ Payment Step Error:', apiError.response?.data || apiError.message);
-      Alert.alert('Error', 'Something went wrong during payment initialization.');
+      showToast('Something went wrong during payment initialization.', 'error');
     }
   };
 
@@ -235,6 +240,13 @@ export default function PaymentScreen({ route, navigation }: Props) {
           <Text style={[styles.cancelBtn, loading && { opacity: 0.5 }]}>Cancel Booking</Text>
         </TouchableOpacity>
       </View>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </SafeAreaView>
   );
 }
@@ -258,16 +270,16 @@ const getStyles = (Theme: any) => StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 160 },
 
   orderCard: { 
-    flexDirection: 'row', backgroundColor: Theme.colors.white, borderRadius: 20, padding: 20, 
-    borderWidth: 1, borderColor: '#F0F0F0', gap: 12, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2
+    flexDirection: 'row', backgroundColor: Theme.colors.card, borderRadius: 20, padding: 20, 
+    borderWidth: 1, borderColor: Theme.colors.border, gap: 12, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: Theme.isDark ? 0.2 : 0.03, shadowRadius: 10, elevation: 2
   },
   orderInfo: { flex: 1 },
   orderSubtitle: { fontSize: 11, fontWeight: '800', color: Theme.colors.primary, letterSpacing: 1.5, marginBottom: 8 },
   shopNameText: { fontSize: 13, fontWeight: '700', color: Theme.colors.textSecondary, marginBottom: 2 },
   serviceName: { fontSize: 18, fontWeight: '800', color: Theme.colors.text, marginBottom: 6 },
   dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15 },
-  dateTimeText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  dateTimeText: { fontSize: 13, color: Theme.colors.textSecondary, fontWeight: '600' },
   priceTag: { backgroundColor: Theme.colors.primary + '10', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 10, alignSelf: 'flex-start' },
   priceTagText: { color: Theme.colors.primary, fontSize: 15, fontWeight: '800' },
   orderImage: { width: 80, height: 80, borderRadius: 15 },
@@ -276,17 +288,17 @@ const getStyles = (Theme: any) => StyleSheet.create({
   
   methodList: { gap: 15 },
   razorpayCard: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white, padding: 18, 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.card, padding: 18, 
     borderRadius: 20, borderWidth: 2, borderColor: Theme.colors.primary, gap: 15
   },
   methodIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: Theme.colors.primary + '10', alignItems: 'center', justifyContent: 'center' },
   methodTextCol: { flex: 1 },
   methodTitle: { fontSize: 15, fontWeight: '800', color: Theme.colors.text },
-  methodDesc: { fontSize: 12, color: '#777', marginTop: 2 },
+  methodDesc: { fontSize: 12, color: Theme.colors.textSecondary, marginTop: 2 },
   selectionDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
   innerDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: Theme.colors.primary },
 
-  billCard: { backgroundColor: Theme.colors.white, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#F0F0F0' },
+  billCard: { backgroundColor: Theme.colors.card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Theme.colors.border },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   billKey: { fontSize: 14, color: Theme.colors.textSecondary, fontWeight: '500' },
   billValue: { fontSize: 14, color: Theme.colors.text, fontWeight: '700' },
@@ -296,8 +308,8 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   footer: { 
     position: 'absolute', bottom: 0, left: 0, right: 0, 
-    backgroundColor: Theme.colors.white, padding: 20, paddingBottom: 40,
-    borderTopWidth: 1, borderTopColor: '#F0F0F0' 
+    backgroundColor: Theme.colors.card, padding: 20, paddingBottom: 40,
+    borderTopWidth: 1, borderTopColor: Theme.colors.border 
   },
   payBtn: { 
     backgroundColor: Theme.colors.primary, width: '100%', height: 60, 
@@ -305,6 +317,6 @@ const getStyles = (Theme: any) => StyleSheet.create({
     shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8,
     marginBottom: 15
   },
-  payBtnText: { color: Theme.colors.white, fontSize: 17, fontWeight: '800' },
-  cancelBtn: { textAlign: 'center', fontSize: 15, fontWeight: '700', color: '#999' },
+  payBtnText: { color: Theme.colors.primaryText, fontSize: 17, fontWeight: '800' },
+  cancelBtn: { textAlign: 'center', fontSize: 15, fontWeight: '700', color: Theme.colors.textSecondary },
 });

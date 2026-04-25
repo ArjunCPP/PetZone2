@@ -9,6 +9,7 @@ import { Icon } from '../Components/Icon';
 import authApi from '../Api';
 import { useFocusEffect } from '@react-navigation/native';
 import { BannerSkeleton } from '../Components/Skeleton';
+import { Toast } from '../Components/Toast';
 
 interface Offer {
   _id?: string;
@@ -29,7 +30,12 @@ export default function OffersScreen() {
   const [offers, setOffers] = React.useState<Offer[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [toast, setToast] = React.useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
   const hasFetchedOffers = React.useRef(false);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, message, type });
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -76,7 +82,7 @@ export default function OffersScreen() {
   };
   const handleCopy = (code: string) => {
     Clipboard.setString(code);
-    Alert.alert('Success', `Promo code ${code} copied to clipboard!`);
+    showToast(`Promo code ${code} copied to clipboard!`, 'success');
   };
 
   return (
@@ -157,6 +163,13 @@ export default function OffersScreen() {
 
 
       </ScrollView>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </SafeAreaView>
   );
 }

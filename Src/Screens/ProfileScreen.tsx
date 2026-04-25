@@ -9,6 +9,7 @@ import { UPDATE_PROFILE_IMAGE, SHOP_DETAIL_LOGO } from '../Assets';
 import { Icon, IconName } from '../Components/Icon';
 import * as Keychain from 'react-native-keychain';
 import authApi from '../Api';
+import { notificationService } from '../Services/NotificationService';
 
 // Use 'any' for Props since ProfileScreen is often used in both Tab and Stack context
 type Props = any;
@@ -29,6 +30,9 @@ export default function ProfileScreen({ navigation }: Props) {
         Animated.timing(animValue, { toValue: 0.3, duration: 800, useNativeDriver: true })
       ])
     ).start();
+
+    // Load notification setting
+    notificationService.isNotificationsEnabled().then(setIsNotificationsEnabled);
   }, []);
 
   useFocusEffect(
@@ -118,7 +122,10 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
           <Switch
             value={isNotificationsEnabled}
-            onValueChange={setIsNotificationsEnabled}
+            onValueChange={(val) => {
+              setIsNotificationsEnabled(val);
+              notificationService.setNotificationsEnabled(val);
+            }}
             trackColor={{ false: '#cbd5e1', true: Theme.colors.primary + '80' }}
             thumbColor={isNotificationsEnabled ? Theme.colors.primary : '#f8fafc'}
           />
@@ -144,7 +151,7 @@ export default function ProfileScreen({ navigation }: Props) {
           ))}
         </View>
 
-        <Text style={styles.versionText}>Version 1.2.0 (Stable)</Text>
+        <Text style={styles.versionText}>Version 1.0.0</Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -155,7 +162,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16, backgroundColor: Theme.colors.white,
+    paddingHorizontal: 20, paddingVertical: 16, backgroundColor: Theme.colors.card,
     borderBottomWidth: 1, borderBottomColor: Theme.colors.border
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: Theme.colors.text },
@@ -170,25 +177,25 @@ const getStyles = (Theme: any) => StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 16, elevation: 8, marginBottom: 20
   },
   userMainRow: { flexDirection: 'row', gap: 20, alignItems: 'center', marginBottom: 20 },
-  avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: Theme.colors.white + '33' },
-  avatarSkeleton: { width: 80, height: 80, borderRadius: 40, backgroundColor: Theme.colors.white + '4D', borderWidth: 4, borderColor: Theme.colors.white + '33' },
+  avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: Theme.colors.primaryText + '33' },
+  avatarSkeleton: { width: 80, height: 80, borderRadius: 40, backgroundColor: Theme.colors.primaryText + '4D', borderWidth: 4, borderColor: Theme.colors.primaryText + '33' },
   userMeta: { flex: 1 },
-  textSkeleton: { borderRadius: 4, backgroundColor: Theme.colors.white + '4D' },
-  userName: { fontSize: 22, fontWeight: '800', color: Theme.colors.white },
-  userEmail: { fontSize: 13, color: Theme.colors.white + 'CC', marginTop: 2 },
+  textSkeleton: { borderRadius: 4, backgroundColor: Theme.colors.primaryText + '4D' },
+  userName: { fontSize: 22, fontWeight: '800', color: Theme.colors.primaryText },
+  userEmail: { fontSize: 13, color: Theme.colors.primaryText + 'CC', marginTop: 2 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   pointsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   premiumBadge: { backgroundColor: Theme.colors.secondary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  premiumText: { fontSize: 10, fontWeight: '800', color: Theme.colors.white, letterSpacing: 0.5 },
-  pointsText: { fontSize: 13, fontWeight: '700', color: Theme.colors.white },
+  premiumText: { fontSize: 10, fontWeight: '800', color: Theme.colors.primaryText, letterSpacing: 0.5 },
+  pointsText: { fontSize: 13, fontWeight: '700', color: Theme.colors.primaryText },
   editBtn: {
-    backgroundColor: Theme.colors.white + '26', height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Theme.colors.white + '4D'
+    backgroundColor: Theme.colors.primaryText + '26', height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Theme.colors.primaryText + '4D'
   },
-  editBtnText: { color: Theme.colors.white, fontSize: 14, fontWeight: '700' },
+  editBtnText: { color: Theme.colors.primaryText, fontSize: 14, fontWeight: '700' },
 
   toggleCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.card,
     padding: 16, paddingHorizontal: 20, borderRadius: 20, marginBottom: 20,
     borderWidth: 1, borderColor: Theme.colors.border
   },
@@ -198,7 +205,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   menuList: { gap: 12 },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.white,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.card,
     padding: 16, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, gap: 16
   },
   menuIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: Theme.colors.primary + '1A', alignItems: 'center', justifyContent: 'center' },

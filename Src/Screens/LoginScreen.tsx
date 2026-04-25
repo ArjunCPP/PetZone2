@@ -4,6 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, Image,
   ActivityIndicator, Alert, StatusBar
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Keychain from 'react-native-keychain';
@@ -56,10 +57,24 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const response = await authApi.login({ email, password });
+      console.log('Login Response:', response.data, 'at', new Date().toISOString());
       if (response.data.success) {
         const token = response.data.data.accessToken;
+        const authMethod = response.data.data.user?.authMethod || 'local';
+        await AsyncStorage.setItem('authMethod', authMethod);
         await Keychain.setGenericPassword('token', token);
-        await notificationService.getFCMToken(); // Fetch and register device FCM on login
+
+        // Register FCM Token
+        try {
+          const fcmToken = await notificationService.getFCMToken();
+          if (fcmToken) {
+            const res = await authApi.registerNotificationToken({ fcmToken, deviceType: Platform.OS });
+            console.log('✅ FCM Registration Success:', res.data);
+          }
+        } catch (e: any) { 
+          console.error('❌ FCM Registration Error:', e.response?.data || e.message); 
+        }
+
         navigation.replace('MainTabs');
       } else {
         setErrors({ email: ' ', password: response.data.message || 'Invalid credentials' });
@@ -84,8 +99,20 @@ export default function LoginScreen({ navigation }: Props) {
       const authResponse = await authApi.authToken({ idToken });
       const accessToken = authResponse.data.data.accessToken;
       if (!accessToken) throw new Error('Failed to retrieve secure access token');
+      await AsyncStorage.setItem('authMethod', 'google');
       await Keychain.setGenericPassword('token', accessToken);
-      await notificationService.getFCMToken(); // Fetch and register FCM token
+
+      // Register FCM Token
+      try {
+        const fcmToken = await notificationService.getFCMToken();
+        if (fcmToken) {
+          const res = await authApi.registerNotificationToken({ fcmToken, deviceType: Platform.OS });
+          console.log('✅ FCM Registration Success (Google):', res.data);
+        }
+      } catch (e: any) { 
+        console.error('❌ FCM Registration Error (Google):', e.response?.data || e.message); 
+      }
+
       navigation.replace('MainTabs');
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -93,10 +120,10 @@ export default function LoginScreen({ navigation }: Props) {
       } else if (error.code === statusCodes.IN_PROGRESS) {
         showToast('Sign in is already in progress', 'error');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Play Services Required', 'Please update Google Play Services.');
+        showToast('Please update Google Play Services.', 'error');
       } else if (error.code === '10') {
         // '10' is the standard code for DEVELOPER_ERROR (SHA-1 mismatch or wrong configuration)
-        Alert.alert('Configuration Error', 'Google Sign-In is not configured correctly for this build (Developer Error 10). Please check your SHA-1 fingerprints in Firebase/Google Console.');
+        showToast('Google Sign-In configuration error (Developer Error 10).', 'error');
       } else {
         showToast(error.message || 'Google Sign-In failed', 'error');
         console.error('Google Sign-In Error:', error);
@@ -112,126 +139,126 @@ export default function LoginScreen({ navigation }: Props) {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView 
-          style={styles.flex} 
+        <ScrollView
+          style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
 
-          {/* ── Header ── */}
-          <View style={styles.header}>
-            <View style={styles.headerSpacer} />
-            <View style={styles.headerTitleGroup}>
-              <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
-              <Text style={styles.headerTitle}>PawNest</Text>
-            </View>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          {/* ── Hero Image ── */}
-          <View style={styles.heroWrapper}>
-            <View style={styles.heroOverlay1} />
-            <View style={styles.heroOverlay2} />
-            <View style={styles.heroContainer}>
-              <Image source={DOG_HERO} style={styles.heroImage} resizeMode="cover" />
-            </View>
-          </View>
-
-          {/* ── Tagline ── */}
-          <View style={styles.taglineContainer}>
-            <Text style={styles.headline}>Book. Groom. Love.</Text>
-            <Text style={styles.subtitle}>Sign in with your email or social account</Text>
-          </View>
-
-          {/* ── Form ── */}
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <View style={[styles.inputContainer, errors.email ? styles.inputError : null]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="hello@petzone.com"
-                  placeholderTextColor={Theme.colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={(v) => { setEmail(v); setErrors({ ...errors, email: '' }); }}
-                  autoCorrect={false}
-                  editable={!loading}
-                />
+            {/* ── Header ── */}
+            <View style={styles.header}>
+              <View style={styles.headerSpacer} />
+              <View style={styles.headerTitleGroup}>
+                <Image source={PETZONE_LOGO} style={styles.logoBox} resizeMode="contain" />
+                <Text style={styles.headerTitle}>PawNest</Text>
               </View>
-              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+              <View style={styles.headerSpacer} />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={[styles.inputContainer, errors.password ? styles.inputError : null]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor={Theme.colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={(v) => { setPassword(v); setErrors({ ...errors, password: '' }); }}
-                  editable={!loading}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Icon name={showPassword ? "eye_off" : "eye"} size={20} color={Theme.colors.textSecondary} />
-                </TouchableOpacity>
+            {/* ── Hero Image ── */}
+            <View style={styles.heroWrapper}>
+              <View style={styles.heroOverlay1} />
+              <View style={styles.heroOverlay2} />
+              <View style={styles.heroContainer}>
+                <Image source={DOG_HERO} style={styles.heroImage} resizeMode="cover" />
               </View>
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
             </View>
 
-            <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text style={styles.forgotText}>Reset Password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.loginBtn, loading && { opacity: 0.8 }]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color={Theme.colors.white} />
-              ) : (
-                <>
-                  <Text style={styles.loginBtnText}>Login</Text>
-                  <Icon name="arrow_forward" size={18} color={Theme.colors.white} />
-                </>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.line} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.line} />
+            {/* ── Tagline ── */}
+            <View style={styles.taglineContainer}>
+              <Text style={styles.headline}>Book. Groom. Love.</Text>
+              <Text style={styles.subtitle}>Sign in with your email or social account</Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.googleBtn, isSigningIn && styles.googleBtnDisabled]}
-              onPress={handleGoogleSignIn}
-              disabled={isSigningIn}
-              activeOpacity={0.85}
-            >
-              {isSigningIn ? (
-                <ActivityIndicator size="small" color={Theme.colors.textSecondary} />
-              ) : (
-                <Icon name="google" size={20} />
-              )}
-              <Text style={styles.googleBtnText}>{isSigningIn ? 'Signing in…' : 'Login with Google'}</Text>
-            </TouchableOpacity>
-          </View>
+            {/* ── Form ── */}
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={[styles.inputContainer, errors.email ? styles.inputError : null]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="hello@petzone.com"
+                    placeholderTextColor={Theme.colors.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={(v) => { setEmail(v); setErrors({ ...errors, email: '' }); }}
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
+                {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+              </View>
 
-          {/* ── Footer ── */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.registerLinkContainer} onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerText}>New here? </Text>
-              <Text style={styles.footerLinkBold}>Register New User</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={[styles.inputContainer, errors.password ? styles.inputError : null]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="••••••••"
+                    placeholderTextColor={Theme.colors.textSecondary}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={(v) => { setPassword(v); setErrors({ ...errors, password: '' }); }}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Icon name={showPassword ? "eye_off" : "eye"} size={20} color={Theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+              </View>
+
+              <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+                <Text style={styles.forgotText}>Reset Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.loginBtn, loading && { opacity: 0.8 }]}
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? (
+                  <ActivityIndicator color={Theme.colors.white} />
+                ) : (
+                  <>
+                    <Text style={styles.loginBtnText}>Login</Text>
+                    <Icon name="arrow_forward" size={18} color={Theme.colors.white} />
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.divider}>
+                <View style={styles.line} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.line} />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.googleBtn, isSigningIn && styles.googleBtnDisabled]}
+                onPress={handleGoogleSignIn}
+                disabled={isSigningIn}
+                activeOpacity={0.85}
+              >
+                {isSigningIn ? (
+                  <ActivityIndicator size="small" color={Theme.colors.textSecondary} />
+                ) : (
+                  <Icon name="google" size={20} />
+                )}
+                <Text style={styles.googleBtnText}>{isSigningIn ? 'Signing in…' : 'Login with Google'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Footer ── */}
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.registerLinkContainer} onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.footerText}>New here? </Text>
+                <Text style={styles.footerLinkBold}>Register New User</Text>
+              </TouchableOpacity>
+            </View>
 
           </View>
           <View style={styles.footerSpacer} />
@@ -320,7 +347,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Theme.colors.white, borderRadius: Theme.roundness.default,
+    backgroundColor: Theme.colors.card, borderRadius: Theme.roundness.default,
     borderWidth: 1.5, borderColor: Theme.colors.border, height: 50,
     paddingHorizontal: 16,
   },
@@ -346,7 +373,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
   loginBtnText: {
-    color: Theme.colors.white, fontSize: 16, fontWeight: '800',
+    color: Theme.colors.primaryText, fontSize: 16, fontWeight: '800',
     fontFamily: Theme.typography.fontFamily,
   },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16, gap: 12 },

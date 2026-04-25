@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getMessaging,
   getToken,
+  deleteToken,
   requestPermission,
   onMessage,
   onTokenRefresh,
@@ -11,6 +12,7 @@ import { IconName } from '../Components/Icon';
 
 const NOTIFICATIONS_STORAGE_KEY = '@firebase_notifications';
 const UNREAD_COUNT_KEY = '@firebase_notifications_unread';
+const NOTIFICATIONS_ENABLED_KEY = '@push_notifications_enabled';
 const CHANNEL_ID = 'pawnest_default';
 
 // Lazily import notifee so the app doesn't crash if it's not yet installed
@@ -80,9 +82,50 @@ export const displayNotification = async (remoteMessage: any) => {
   }
 };
 
+type UnreadCountCallback = (count: number) => void;
+
 class NotificationService {
+  private unreadCountListeners: UnreadCountCallback[] = [];
+
   private get messaging() {
     return getMessaging();
+  }
+
+  /**
+   * Check if push notifications are enabled (defaults to true)
+   */
+  async isNotificationsEnabled(): Promise<boolean> {
+    try {
+      const val = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+      return val === null ? true : val === 'true';
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Enable or disable push notifications
+   */
+  async setNotificationsEnabled(enabled: boolean) {
+    try {
+      await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
+    } catch (error) {
+      console.error('Firebase Notifications: Error setting notification preference', error);
+    }
+  }
+
+  /**
+   * Subscribe to unread count changes
+   */
+  onUnreadCountChange(callback: UnreadCountCallback) {
+    this.unreadCountListeners.push(callback);
+    return () => {
+      this.unreadCountListeners = this.unreadCountListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyUnreadCountChange(count: number) {
+    this.unreadCountListeners.forEach(l => l(count));
   }
 
   /**
@@ -112,9 +155,13 @@ class NotificationService {
 
       const updatedNotifications = [newNotification, ...notifications];
       await AsyncStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifications));
+      
       // Increment unread count
       const currentUnread = await this.getUnreadCount();
-      await AsyncStorage.setItem(UNREAD_COUNT_KEY, String(currentUnread + 1));
+      const newCount = currentUnread + 1;
+      await AsyncStorage.setItem(UNREAD_COUNT_KEY, String(newCount));
+      this.notifyUnreadCountChange(newCount);
+      
       console.log('Firebase Notifications: Saved new notification securely.');
     } catch (error) {
       console.error('Firebase Notifications: Error saving notification', error);
@@ -143,6 +190,7 @@ class NotificationService {
     try {
       await AsyncStorage.removeItem(NOTIFICATIONS_STORAGE_KEY);
       await AsyncStorage.removeItem(UNREAD_COUNT_KEY);
+      this.notifyUnreadCountChange(0);
       console.log('Firebase Notifications: Cleared all notifications.');
     } catch (error) {
       console.error('Firebase Notifications: Error clearing notifications', error);
@@ -167,6 +215,7 @@ class NotificationService {
   async markAllRead() {
     try {
       await AsyncStorage.setItem(UNREAD_COUNT_KEY, '0');
+      this.notifyUnreadCountChange(0);
     } catch (error) {
       console.error('Firebase Notifications: Error marking as read', error);
     }
@@ -220,7 +269,7 @@ class NotificationService {
    */
   async deleteFCMToken() {
     try {
-      await this.messaging.deleteToken();
+      await deleteToken(this.messaging);
       console.log('Firebase Notifications: FCM Token deleted on logout.');
     } catch (error) {
       console.error('Firebase Notifications: Failed to delete FCM token:', error);
@@ -235,22 +284,38 @@ class NotificationService {
   }
 
   /**
+   * Clears all active notifications from the system tray (notifee)
+   */
+  async clearAllActiveNotifications() {
+    if (notifee) {
+      try {
+        await notifee.cancelAllNotifications();
+        console.log('Firebase Notifications: Cleared all active system notifications.');
+      } catch (error) {
+        console.error('Firebase Notifications: Error cancelling notifications', error);
+      }
+    }
+  }
+
+  /**
    * Sets up a foreground message handler.
-   * Firebase does NOT auto-display notifications in foreground — notifee does it.
    */
   setupForegroundHandler() {
     return onMessage(this.messaging, async remoteMessage => {
       console.log('\n\n=== 🔔 FOREGROUND NOTIFICATION HIT ===');
-      console.log('MessageId   :', remoteMessage.messageId);
-      console.log('Title       :', remoteMessage.notification?.title);
-      console.log('Body        :', remoteMessage.notification?.body);
-      console.log('Data        :', JSON.stringify(remoteMessage.data));
-      console.log('From        :', remoteMessage.from);
-      console.log('SentTime    :', new Date(remoteMessage.sentTime || 0).toISOString());
-      console.log('Full payload:', JSON.stringify(remoteMessage, null, 2));
+      console.log('Payload     :', JSON.stringify(remoteMessage, null, 2));
       console.log('======================================\n\n');
+      
+      // Always save notification to storage (so it shows in the notification screen)
       await this.saveNotification(remoteMessage);
-      await displayNotification(remoteMessage);
+      
+      // Only display the pop-up banner if notifications are enabled
+      const enabled = await this.isNotificationsEnabled();
+      if (enabled) {
+        await displayNotification(remoteMessage);
+      } else {
+        console.log('Firebase Notifications: Pop-up disabled by user, saving silently.');
+      }
     });
   }
 }

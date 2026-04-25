@@ -13,9 +13,6 @@ export default function AboutScreen({ navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
 
-  const handleLink = (url: string) => {
-    Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -38,7 +35,7 @@ export default function AboutScreen({ navigation }: Props) {
             <Image source={PETZONE_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>PawNest</Text>
-          <Text style={styles.appVersion}>Version 1.2.0</Text>
+          <Text style={styles.appVersion}>Version 1.0.0</Text>
           <Text style={styles.appDescription}>
             The ultimate platform to book grooming, spa treatments, and complete care for your best furry friends. We bring the best professionals directly to your fingertips.
           </Text>
@@ -47,27 +44,40 @@ export default function AboutScreen({ navigation }: Props) {
         {/* Links Section */}
         <Text style={styles.sectionTitle}>Legal & Policies</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://example.com/terms')}>
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/terms', title: 'Terms of Service' })}
+          >
             <Text style={styles.rowTitle}>Terms of Service</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://example.com/privacy')}>
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/privacy', title: 'Privacy Policy' })}
+          >
             <Text style={styles.rowTitle}>Privacy Policy</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity 
+            style={styles.row} 
+            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/refund-policy', title: 'Refund Policy' })}
+          >
+            <Text style={styles.rowTitle}>Refund Policy</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Social Section */}
-        <Text style={styles.sectionTitle}>Connect With Us</Text>
+        <Text style={styles.sectionTitle}>Contact & Support</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => handleLink('https://instagram.com')}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.primary + '1A' }]}>
-                <Icon name="heart" size={16} color={Theme.colors.primary} />
-              </View>
-              <Text style={styles.rowTitle}>Follow on Instagram</Text>
-            </View>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HelpCenter' as any)}>
+            <Text style={styles.rowTitle}>Help Center & FAQ</Text>
+            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:pawnestt@gamil.com')}>
+            <Text style={styles.rowTitle}>Contact Support</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -141,7 +151,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     fontFamily: Theme.typography.fontFamily,
   },
   
-  card: { backgroundColor: Theme.colors.white, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, overflow: 'hidden' },
+  card: { backgroundColor: Theme.colors.card, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, minHeight: 60 },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconWrapper: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },

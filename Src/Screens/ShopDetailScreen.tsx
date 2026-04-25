@@ -239,13 +239,13 @@ export default function ShopDetailScreen({ route, navigation }: Props) {
         url: webUrl,
       });
     } catch (error: any) {
-      Alert.alert('Sharing Error', error.message);
+      showToast(error.message || 'Sharing Error', 'error');
     }
   };
 
   const handleDirections = () => {
     if (!currentShop?.location?.latitude || !currentShop?.location?.longitude) {
-      Alert.alert('Location Unavailable', 'Store location coordinates are not available.');
+      showToast('Store location coordinates are not available.', 'error');
       return;
     }
     const { latitude, longitude } = currentShop.location;
@@ -255,7 +255,7 @@ export default function ShopDetailScreen({ route, navigation }: Props) {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open Google Maps.');
+        showToast('Unable to open Google Maps.', 'error');
       }
     });
   };
@@ -800,7 +800,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   iconBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Theme.colors.white,
+    backgroundColor: Theme.colors.card,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -830,7 +830,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     borderTopLeftRadius: 30, borderTopRightRadius: 30,
     marginTop: -30,
     minHeight: 600,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 20
+    shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: Theme.isDark ? 0.4 : 0.1, shadowRadius: 20, elevation: 20
   },
 
   headerInfoContainer: {
@@ -843,7 +843,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   logoContainer: {
     width: 90, height: 90, borderRadius: 24,
-    borderWidth: 4, borderColor: Theme.colors.white, backgroundColor: Theme.colors.white,
+    borderWidth: 4, borderColor: Theme.colors.card, backgroundColor: Theme.colors.card,
     shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8,
     overflow: 'hidden'
   },
@@ -857,7 +857,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   shopMeta: { fontSize: 13, fontWeight: '600', color: Theme.colors.primary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 },
 
   locationCard: {
-    marginHorizontal: 20, marginTop: 20, padding: 16, backgroundColor: Theme.colors.white,
+    marginHorizontal: 20, marginTop: 20, padding: 16, backgroundColor: Theme.colors.card,
     borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
@@ -868,7 +868,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   address1: { fontSize: 14, fontWeight: '700', color: Theme.colors.text, marginBottom: 2, fontFamily: Theme.typography.fontFamily },
   address2: { fontSize: 12, color: Theme.colors.textSecondary, fontFamily: Theme.typography.fontFamily },
   directionsBtn: { backgroundColor: Theme.colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
-  directionsBtnText: { fontSize: 12, fontWeight: '700', color: Theme.colors.white },
+  directionsBtnText: { fontSize: 12, fontWeight: '700', color: Theme.colors.primaryText },
 
   sectionContainer: { paddingHorizontal: 20, paddingTop: 24, },
   sectionContainer2: { paddingHorizontal: 20, paddingTop: 24, marginBottom: 50 },
@@ -879,7 +879,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   aboutText: { fontSize: 14, lineHeight: 24, color: Theme.colors.textSecondary, fontFamily: Theme.typography.fontFamily },
 
   contactCard: {
-    backgroundColor: Theme.colors.white, borderRadius: 20, padding: 16,
+    backgroundColor: Theme.colors.card, borderRadius: 20, padding: 16,
     marginTop: 8, gap: 16,
     borderWidth: 1, borderColor: Theme.colors.border
   },
@@ -891,7 +891,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   serviceCard: {
     width: (Dimensions.get('window').width - 52) / 2,
-    backgroundColor: Theme.colors.white, padding: 16, borderRadius: 20,
+    backgroundColor: Theme.colors.card, padding: 16, borderRadius: 20,
     borderWidth: 1.5, borderColor: Theme.colors.border,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
   },
@@ -907,23 +907,23 @@ const getStyles = (Theme: any) => StyleSheet.create({
   },
   absInfoBtn: { position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: 14, backgroundColor: Theme.colors.background, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   serviceIconContainer: { width: 44, height: 44, borderRadius: 14, backgroundColor: Theme.colors.background, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  serviceIconContainerSelected: { backgroundColor: Theme.colors.white },
+  serviceIconContainerSelected: { backgroundColor: Theme.colors.primaryText + '33' },
   serviceBody: { gap: 4 },
   serviceTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   serviceTitle: { fontSize: 14, fontWeight: '800', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
-  serviceTitleSelected: { color: Theme.colors.white },
+  serviceTitleSelected: { color: Theme.colors.primaryText },
   serviceDesc: { fontSize: 11, color: Theme.colors.textSecondary, lineHeight: 16, height: 32 },
-  serviceDescSelected: { color: Theme.colors.white },
+  serviceDescSelected: { color: Theme.colors.primaryText + 'CC' },
   servicePrice: { fontSize: 16, fontWeight: '900', color: Theme.colors.text, marginTop: 4 },
-  servicePriceSelected: { color: Theme.colors.white },
+  servicePriceSelected: { color: Theme.colors.primaryText },
 
   amenitiesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
-  amenityBadge: { backgroundColor: Theme.colors.white, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: Theme.colors.border },
+  amenityBadge: { backgroundColor: Theme.colors.card, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: Theme.colors.border },
   amenityText: { fontSize: 12, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
 
   stickyCta: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Theme.colors.white, padding: 20, paddingBottom: 34,
+    backgroundColor: Theme.colors.card, padding: 20, paddingBottom: 34,
     borderTopWidth: 1, borderTopColor: Theme.colors.border,
     flexDirection: 'row', alignItems: 'center', gap: 20,
     shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 10
@@ -932,10 +932,10 @@ const getStyles = (Theme: any) => StyleSheet.create({
   ctaSubtext: { fontSize: 12, fontWeight: '700', color: Theme.colors.textSecondary },
   ctaPriceText: { fontSize: 22, fontWeight: '900', color: Theme.colors.text },
   ctaButton: { flex: 1.5, backgroundColor: Theme.colors.primary, paddingVertical: 16, borderRadius: 16, alignItems: 'center', shadowColor: Theme.colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-  ctaBtnText: { color: Theme.colors.white, fontSize: 14, fontWeight: '800', fontFamily: Theme.typography.fontFamily },
+  ctaBtnText: { color: Theme.colors.primaryText, fontSize: 14, fontWeight: '800', fontFamily: Theme.typography.fontFamily },
 
   reviewSummaryCard: {
-    flexDirection: 'row', backgroundColor: Theme.colors.white, borderRadius: 24, padding: 24,
+    flexDirection: 'row', backgroundColor: Theme.colors.card, borderRadius: 24, padding: 24,
     borderWidth: 1, borderColor: Theme.colors.border, marginBottom: 20, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2
   },
@@ -950,7 +950,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   reviewsListHorizontal: { paddingBottom: 10 },
   reviewItemCard: {
-    width: 300, backgroundColor: Theme.colors.white, borderRadius: 24, padding: 20,
+    width: 300, backgroundColor: Theme.colors.card, borderRadius: 24, padding: 20,
     borderWidth: 1.5, borderColor: Theme.colors.border, marginRight: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2
   },
@@ -965,11 +965,11 @@ const getStyles = (Theme: any) => StyleSheet.create({
   deleteReviewText: { fontSize: 12, fontWeight: '800', color: Theme.colors.error, marginTop: 8 },
 
   fullReviewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  fullReviewCard: { width: '100%', backgroundColor: Theme.colors.white, borderRadius: 30, padding: 24, maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.2, shadowRadius: 30, elevation: 20 },
+  fullReviewCard: { width: '100%', backgroundColor: Theme.colors.card, borderRadius: 30, padding: 24, maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.2, shadowRadius: 30, elevation: 20 },
   fullReviewScroll: { marginTop: 16, marginBottom: 24 },
   fullReviewText: { fontSize: 16, color: Theme.colors.text, lineHeight: 26 },
   closeFullReviewBtn: { backgroundColor: Theme.colors.primary, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
-  closeFullReviewBtnText: { fontSize: 15, fontWeight: '800', color: Theme.colors.white },
+  closeFullReviewBtnText: { fontSize: 15, fontWeight: '800', color: Theme.colors.primaryText },
 
   simpleModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: Theme.colors.border },
   simpleModalTitle: { fontSize: 20, fontWeight: '800', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },

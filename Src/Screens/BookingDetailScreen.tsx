@@ -19,7 +19,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const { bookingData } = route.params;
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [cancelling, setCancelling] = React.useState(false);
   const [toast, setToast] = React.useState({ visible: false, message: '', type: 'info' as 'info' | 'success' | 'error' });
   const [confirmVisible, setConfirmVisible] = React.useState(false);
@@ -38,11 +38,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
     return () => backHandler.remove();
   }, [handleBack]);
 
-  React.useEffect(() => {
-    // Artificial delay for premium skeleton feel
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
+
 
   // Format date and time
   const scheduledDate = new Date(bookingData.scheduledAt);
@@ -61,7 +57,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
 
   const handleDirections = () => {
     if (!bookingData.tenant?.location?.latitude || !bookingData.tenant?.location?.longitude) {
-      Alert.alert('Location Unavailable', 'Store location coordinates are not available.');
+      setToast({ visible: true, message: 'Store location coordinates are not available.', type: 'error' });
       return;
     }
     const { latitude, longitude } = bookingData.tenant.location;
@@ -71,7 +67,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open Google Maps.');
+        setToast({ visible: true, message: 'Unable to open Google Maps.', type: 'error' });
       }
     });
   };
@@ -233,23 +229,42 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
               <>
                 <Text style={styles.sectionTitle}>REFUND INFORMATION</Text>
                 <View style={[styles.card, { backgroundColor: '#F8F9FA' }]}>
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoLeft}>
-                      <Icon name="tag" size={18} color={Theme.colors.primary} />
-                      <Text style={styles.infoLabel}>Refund Status</Text>
+                  {bookingData.refund.refundAmount === 0 && (bookingData.refund.refundStatus === 'Pending' || !bookingData.refund.refundStatus) ? (
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoLeft}>
+                        <Icon name="tag" size={18} color={Theme.colors.error} />
+                        <Text style={styles.infoLabel}>Status</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.infoValue, { color: Theme.colors.error }]}>Not eligible for refund</Text>
+                        <TouchableOpacity 
+                          onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/refund-policy', title: 'Refund Policy' })}
+                        >
+                          <Text style={{ fontSize: 12, color: Theme.colors.primary, fontWeight: '700', marginTop: 4, textDecorationLine: 'underline' }}>Read Refund Policy</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <Text style={[styles.infoValue, { color: bookingData.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
-                      {bookingData.refund.refundStatus || 'Pending'}
-                    </Text>
-                  </View>
-                  <View style={styles.divider} />
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoLeft}>
-                      <Icon name="clock" size={18} color={Theme.colors.primary} />
-                      <Text style={styles.infoLabel}>Refund Amount</Text>
-                    </View>
-                    <Text style={styles.infoValue}>₹{bookingData.refund.refundAmount || 0} ({bookingData.refund.refundPercentage || 0}%)</Text>
-                  </View>
+                  ) : (
+                    <>
+                      <View style={styles.infoRow}>
+                        <View style={styles.infoLeft}>
+                          <Icon name="tag" size={18} color={Theme.colors.primary} />
+                          <Text style={styles.infoLabel}>Refund Status</Text>
+                        </View>
+                        <Text style={[styles.infoValue, { color: bookingData.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
+                          {bookingData.refund.refundStatus || 'Pending'}
+                        </Text>
+                      </View>
+                      <View style={styles.divider} />
+                      <View style={styles.infoRow}>
+                        <View style={styles.infoLeft}>
+                          <Icon name="clock" size={18} color={Theme.colors.primary} />
+                          <Text style={styles.infoLabel}>Refund Amount</Text>
+                        </View>
+                        <Text style={styles.infoValue}>₹{bookingData.refund.refundAmount || 0} ({bookingData.refund.refundPercentage || 0}%)</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </>
             )}
@@ -300,7 +315,7 @@ export default function BookingDetailScreen({ route, navigation }: Props) {
         title="Cancel Booking?"
         message={`Are you sure you want to cancel your booking at ${bookingData?.tenant?.storeName || 'the store'} on ${dateStr} at ${timeStr}?`}
         policyInfo={CANCELLATION_POLICY}
-        onOpenPolicy={(url, title) => navigation.navigate('WebViewScreen', { url, title })}
+        onOpenPolicy={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/refund-policy', title: 'Refund Policy' })}
       />
     </SafeAreaView>
   );
@@ -324,9 +339,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
   statusUpcoming: { backgroundColor: Theme.colors.primary + '1A' },
   statusCompleted: { backgroundColor: '#10b9811A' },
   statusCancelled: { backgroundColor: '#f43f5e1A' },
-  statusText: { fontSize: 12, fontWeight: '800', color: Theme.colors.textSecondary, letterSpacing: 0.5 },
+  statusText: { fontSize: 12, fontWeight: '800', color: Theme.colors.textSecondary, letterSpacing: 0.5, fontFamily: Theme.typography.fontFamily },
 
-  card: { backgroundColor: Theme.colors.white, borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border },
+  card: { backgroundColor: Theme.colors.card, borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   shopLogo: { width: 60, height: 60, borderRadius: 12, backgroundColor: Theme.colors.primary + '1A' },
   shopInfo: { flex: 1, gap: 4 },

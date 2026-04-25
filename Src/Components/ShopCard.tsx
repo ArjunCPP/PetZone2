@@ -112,21 +112,21 @@ export default function ShopCard({
 
 const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.card,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: Theme.isDark ? 0.3 : 0.08,
     shadowRadius: 16,
     elevation: 6,
     borderWidth: 1,
-    borderColor: '#F0F2F5',
+    borderColor: Theme.colors.border,
   },
   imageCover: {
     width: '100%',
     height: isGrid ? 110 : 160,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: Theme.colors.border + '40',
     position: 'relative',
   },
   image: {
@@ -155,7 +155,7 @@ const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
     gap: 4,
   },
   badgePrimaryText: {
-    color: '#FFF',
+    color: Theme.colors.primaryText,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -196,10 +196,10 @@ const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFF',
+    backgroundColor: Theme.colors.card,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: Theme.isDark ? 0.2 : 0.1,
     shadowRadius: 4,
     elevation: 2,
     padding: 2,
@@ -252,7 +252,7 @@ const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
     gap: 6,
   },
   tag: {
-    backgroundColor: '#F0F4F8',
+    backgroundColor: Theme.colors.border + '80',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -260,7 +260,7 @@ const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
   tagText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#4A5568',
+    color: Theme.colors.textSecondary,
     textTransform: 'uppercase',
     fontFamily: Theme.typography.fontFamily,
   },
@@ -278,7 +278,7 @@ const getStyles = (Theme: any, isGrid: boolean) => StyleSheet.create({
     elevation: 4,
   },
   bookBtnText: {
-    color: '#FFF',
+    color: Theme.colors.primaryText,
     fontSize: isGrid ? 10 : 12,
     fontWeight: '800',
     letterSpacing: 0.5,

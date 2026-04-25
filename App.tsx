@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { StatusBar, StyleSheet, View, LogBox } from 'react-native';
+import { StatusBar, StyleSheet, View, LogBox, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { Theme } from './Src/theme';
@@ -14,6 +14,7 @@ import { LocationProvider } from './Src/LocationContext';
 import NetInfo1 from './Src/Components/NetInfo1';
 import { notificationService } from './Src/Services/NotificationService';
 import * as Keychain from 'react-native-keychain';
+import authApi from './Src/Api';
 
 
 const linking = {
@@ -38,8 +39,9 @@ function MainApp() {
     const initNotifications = async () => {
       console.log('\n\n=== 🚀 NOTIFICATION INIT START ===');
 
-      // 1. Request permission + create notifee channel
+      // 1. Request permission + create notifee channel + clear existing
       const hasPermission = await notificationService.requestUserPermission();
+      await notificationService.clearAllActiveNotifications();
       console.log('📋 Permission granted:', hasPermission);
 
       // 2. Get FCM token ONLY if user is logged in
@@ -49,10 +51,16 @@ function MainApp() {
           if (credentials) {
             const token = await notificationService.getFCMToken();
             if (token) {
-              console.log('\n✅ FCM TOKEN (Loaded for authenticated user):');
-              console.log(token);
-              // TODO: If you have an endpoint to update the FCM token, call it here:
-              // authApi.updateProfile({ fcmToken: token });
+              console.log('\n✅ FCM TOKEN (Loaded for authenticated user):', token);
+              try {
+                const res = await authApi.registerNotificationToken({ 
+                  fcmToken: token, 
+                  deviceType: Platform.OS 
+                });
+                console.log('✅ FCM Registration Success:', res.data);
+              } catch (e: any) {
+                console.error('❌ FCM Registration Failed:', e.response?.data || e.message);
+              }
             } else {
               console.warn('❌ FCM Token is NULL — SERVICE_NOT_AVAILABLE or network issue');
             }

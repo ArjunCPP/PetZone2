@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, ActivityIndicator } from 'react-native';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from './Icon';
 
@@ -13,6 +13,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   type?: 'danger' | 'info';
   policyInfo?: string;
+  onOpenPolicy?: () => void;
+  loading?: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -24,7 +26,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   confirmLabel = 'Yes, Cancel',
   cancelLabel = 'Go Back',
   type = 'danger',
-  policyInfo
+  policyInfo,
+  onOpenPolicy,
+  loading = false
 }) => {
   const { theme: Theme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme, type), [Theme, type]);
@@ -56,8 +60,17 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           
           {policyInfo && (
             <View style={styles.policyContainer}>
-              <Icon name="tag" size={14} color="#666" />
-              <Text style={styles.policyText}>{policyInfo}</Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Icon name="tag" size={14} color="#666" />
+                  <Text style={styles.policyText}>{policyInfo}</Text>
+                </View>
+                {onOpenPolicy && (
+                  <TouchableOpacity onPress={onOpenPolicy} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                    <Text style={{ fontSize: 12, color: Theme.colors.primary, fontWeight: '700', textDecorationLine: 'underline' }}>Read Full Policy</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
           
@@ -65,8 +78,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelBtnText}>{cancelLabel}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
-              <Text style={styles.confirmBtnText}>{confirmLabel}</Text>
+            <TouchableOpacity 
+              style={[styles.confirmBtn, loading && { opacity: 0.7 }]} 
+              onPress={onConfirm}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.confirmBtnText}>{confirmLabel}</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -80,53 +101,53 @@ const getStyles = (Theme: any, type: 'danger' | 'info') => StyleSheet.create({
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
   modalContainer: { 
     width: '85%',
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: Theme.colors.card, 
     borderRadius: 20, 
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 10
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: Theme.isDark ? 0.4 : 0.1, shadowRadius: 10, elevation: 10
   },
   iconContainer: { 
     width: 60, height: 60, borderRadius: 30, 
-    backgroundColor: type === 'danger' ? '#FFF5F5' : '#F0F7FF',
+    backgroundColor: type === 'danger' ? (Theme.isDark ? '#f43f5e20' : '#FFF5F5') : (Theme.colors.primary + '1A'),
     alignItems: 'center', justifyContent: 'center', marginBottom: 16
   },
   titleText: { 
-    fontSize: 18, fontWeight: '700', color: '#1A1A1A', 
+    fontSize: 18, fontWeight: '700', color: Theme.colors.text, 
     textAlign: 'center', marginBottom: 8 
   },
   messageText: { 
-    fontSize: 14, color: '#666666', 
+    fontSize: 14, color: Theme.colors.textSecondary, 
     textAlign: 'center', lineHeight: 20, marginBottom: 20 
   },
   policyContainer: {
     width: '100%',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Theme.colors.background,
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
     gap: 8,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#ECECEC'
+    borderColor: Theme.colors.border
   },
   policyText: {
     flex: 1,
     fontSize: 12,
-    color: '#666',
+    color: Theme.colors.textSecondary,
     lineHeight: 18,
     fontWeight: '500'
   },
   buttonRow: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtn: { 
-    flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#EEEEEE',
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF'
+    flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: Theme.colors.card
   },
-  cancelBtnText: { color: '#666666', fontSize: 14, fontWeight: '600' },
+  cancelBtnText: { color: Theme.colors.textSecondary, fontSize: 14, fontWeight: '600' },
   confirmBtn: { 
     flex: 1, height: 48, borderRadius: 12, 
     backgroundColor: type === 'danger' ? '#f43f5e' : '#3b82f6',
     alignItems: 'center', justifyContent: 'center'
   },
-  confirmBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  confirmBtnText: { color: Theme.colors.primaryText, fontSize: 14, fontWeight: '700' },
 });

@@ -1,5 +1,6 @@
-import React, { useMemo,  useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Switch, Alert, ActivityIndicator, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import authApi from '../Api';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +9,9 @@ import { RootStackParamList } from '../Navigation/types';
 import { useAppTheme } from '../ThemeContext';
 import { Icon } from '../Components/Icon';
 import { notificationService } from '../Services/NotificationService';
+import { ConfirmModal } from '../Components/ConfirmModal';
+import { Toast } from '../Components/Toast';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -15,60 +19,64 @@ export default function SettingsScreen({ navigation }: Props) {
   const { theme: Theme, isDarkMode, toggleTheme } = useAppTheme();
   const styles = useMemo(() => getStyles(Theme), [Theme]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [authMethod, setAuthMethod] = useState<string | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone and you will lose all your data.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const response = await authApi.DeleteAccount();
-              if (response.data && response.data.success) {
-                await notificationService.deleteFCMToken(); // Clear FCM token
-                await Keychain.resetGenericPassword();
-                navigation.replace('Login');
-              } else {
-                Alert.alert('Error', response.data?.message || 'Failed to delete account.');
-              }
-            } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Something went wrong. Please try again.');
-            } finally {
-              setIsDeleting(false);
-            }
-          }
+  useEffect(() => {
+    const loadAuthMethod = async () => {
+      const method = await AsyncStorage.getItem('authMethod');
+      setAuthMethod(method);
+    };
+    loadAuthMethod();
+  }, []);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, message, type });
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await authApi.DeleteAccount();
+      if (response.data && response.data.success) {
+        await notificationService.deleteFCMToken();
+        if (authMethod === 'google') {
+          try { await GoogleSignin.signOut(); } catch (e) {}
         }
-      ]
-    );
+        await Keychain.resetGenericPassword();
+        await AsyncStorage.removeItem('authMethod');
+        navigation.replace('Login');
+      } else {
+        showToast(response.data?.message || 'Failed to delete account.', 'error');
+      }
+    } catch (error: any) {
+      showToast(error.response?.data?.message || 'Something went wrong. Please try again.', 'error');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await notificationService.deleteFCMToken(); // Clear FCM token
-              await Keychain.resetGenericPassword();
-              navigation.replace('Login');
-            } catch (error) {
-              console.error('Logout error:', error);
-              navigation.replace('Login');
-            }
-          }
-        }
-      ]
-    );
+    setIsLoggingOut(true);
+    try {
+      await notificationService.deleteFCMToken();
+      if (authMethod === 'google') {
+        try { await GoogleSignin.signOut(); } catch (e) {}
+      }
+      await Keychain.resetGenericPassword();
+      await AsyncStorage.removeItem('authMethod');
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      navigation.replace('Login');
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
+    }
   };
 
   return (
@@ -87,13 +95,18 @@ export default function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('ForgotPassword', { returnTo: 'Settings' })}>
-            <Text style={styles.rowTitle}>Change Password</Text>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.row}>
+          {authMethod === 'local' && (
+            <>
+              <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('ForgotPassword', { returnTo: 'Settings' })}>
+                <Text style={styles.rowTitle}>Change Password</Text>
+                <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
+              </TouchableOpacity>
+              <View style={styles.divider} />
+            </>
+          )}
+          <TouchableOpacity style={styles.row} disabled={authMethod !== 'local'}>
             <Text style={styles.rowTitle}>Linked Accounts</Text>
-            <Text style={styles.rowSubtitle}>Google connected</Text>
+            <Text style={styles.rowSubtitle}>{authMethod === 'local' ? '-' : 'Google'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -115,40 +128,19 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Legal</Text>
+        <Text style={styles.sectionTitle}>Account & Info</Text>
         <View style={styles.card}>
           <TouchableOpacity 
             style={styles.row} 
-            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/terms', title: 'Terms of Service' })}
+            onPress={() => navigation.navigate('About')}
           >
-            <Text style={styles.rowTitle}>Terms of Service</Text>
+            <Text style={styles.rowTitle}>About PawNest</Text>
             <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity 
             style={styles.row} 
-            onPress={() => navigation.navigate('WebViewScreen', { url: 'https://petzone.quantuver-wizards.site/privacy', title: 'Privacy Policy' })}
-          >
-            <Text style={styles.rowTitle}>Privacy Policy</Text>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionTitle}>Support</Text>
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HelpCenter' as any)}>
-            <Text style={styles.rowTitle}>Help Center & FAQ</Text>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@petzone.com')}>
-            <Text style={styles.rowTitle}>Contact Support</Text>
-            <Icon name="arrow_forward" size={18} color={Theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={styles.divider} />
-          <TouchableOpacity 
-            style={styles.row} 
-            onPress={handleDeleteAccount}
+            onPress={() => setShowDeleteModal(true)}
             disabled={isDeleting}
           >
             {isDeleting ? (
@@ -159,12 +151,44 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+
         <View style={[styles.card, { marginTop: 24, marginBottom: 20 }]}>
-          <TouchableOpacity style={styles.row} onPress={handleLogout}>
+          <TouchableOpacity style={styles.row} onPress={() => setShowLogoutModal(true)}>
               <Text style={[styles.rowTitle, { color: Theme.colors.primary, textAlign: 'center', flex: 1 }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        type="danger"
+        loading={isLoggingOut}
+      />
+
+      <ConfirmModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This action cannot be undone and you will lose all your data."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        type="danger"
+        loading={isDeleting}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </SafeAreaView>
   );
 }
@@ -194,7 +218,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     fontFamily: Theme.typography.fontFamily,
   },
   
-  card: { backgroundColor: Theme.colors.white, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, overflow: 'hidden' },
+  card: { backgroundColor: Theme.colors.card, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, minHeight: 60 },
   rowTitle: { fontSize: 15, fontWeight: '700', color: Theme.colors.text, fontFamily: Theme.typography.fontFamily },
   rowSubtitle: { fontSize: 13, color: Theme.colors.textSecondary, fontWeight: '600', fontFamily: Theme.typography.fontFamily },

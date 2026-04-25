@@ -102,7 +102,7 @@ class AuthApiFetch {
         return response;
     }
     DeleteAccount() {
-        const response = axios.delete(`/user/me`);
+        const response = axios.delete(`/auth/user/me`);
         return response;
     }
     shopReviews(id: any) {
@@ -135,6 +135,10 @@ class AuthApiFetch {
     }
     activeOffers() {
         const response = axios.get(`/offers/active`);
+        return response;
+    }
+    registerNotificationToken(payload: { fcmToken: string, deviceType: string }) {
+        const response = axios.post(`/notifications/register-token`, payload);
         return response;
     }
 }

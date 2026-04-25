@@ -13,13 +13,16 @@ export const LightTheme = {
   colors: {
     primary: '#2ac0ac',
     secondary: '#f97316',
-    background: '#f6f8f8',
-    text: '#1A1A1A',
-    textSecondary: '#888888',
-    border: '#EBEBEB',
-    white: '#FFFFFF',
+    background: '#F6F8F8',
     surface: '#F7FBFA',
+    card: '#FFFFFF',
+    text: '#1A1A1A',
+    textSecondary: '#666666',
+    border: '#EBEBEB',
     error: '#FF4D4D',
+    primaryText: '#FFFFFF',
+    white: '#FFFFFF',
+    black: '#000000',
   },
 };
 
@@ -29,13 +32,16 @@ export const DarkTheme = {
   colors: {
     primary: '#2ac0ac',
     secondary: '#f97316',
-    background: '#121212',
-    text: '#FFFFFF',
+    background: '#0D0D0D',
+    surface: '#121212',
+    card: '#1A1A1A',
+    text: '#F5F5F5',
     textSecondary: '#A0A0A0',
-    border: '#2C2C2C',
-    white: '#1E1E1E',
-    surface: '#1A1A1A',
+    border: '#262626',
     error: '#FF6B6B',
+    primaryText: '#FFFFFF',
+    white: '#1A1A1A', // Legacy support
+    black: '#F5F5F5', // Legacy support
   },
 };
 

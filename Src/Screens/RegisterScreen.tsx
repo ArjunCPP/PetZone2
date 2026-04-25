@@ -211,12 +211,14 @@ export default function RegisterScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.footer}>
+          <TouchableOpacity 
+            style={styles.footer} 
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
+          >
             <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Login</Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={styles.footerLink}>Login</Text>
+          </TouchableOpacity>
           <View style={styles.footerSpacer} />
         </ScrollView>
         <Toast
@@ -306,7 +308,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.white,
+    backgroundColor: Theme.colors.card,
     borderRadius: Theme.roundness.default,
     borderWidth: 1.5,
     borderColor: Theme.colors.border,
@@ -335,7 +337,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
     shadowRadius: 8, elevation: 4,
   },
   registerBtnText: {
-    color: Theme.colors.white, fontSize: 16, fontWeight: '800',
+    color: Theme.colors.primaryText, fontSize: 16, fontWeight: '800',
     fontFamily: Theme.typography.fontFamily,
   },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12 },

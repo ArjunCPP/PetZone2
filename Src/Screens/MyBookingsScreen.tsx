@@ -34,11 +34,12 @@ export default function MyBookingsScreen({ navigation }: any) {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'info' | 'success' | 'error' });
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const isInitialLoad = React.useRef(true);
 
   const fetchBookings = async (showRefresh = false) => {
     try {
       if (showRefresh) setRefreshing(true);
-      else setLoading(true);
+      else if (isInitialLoad.current) setLoading(true);
 
       const response = await authApi.myBookings();
       console.log("My Bookings API Response:", response.data);
@@ -55,6 +56,7 @@ export default function MyBookingsScreen({ navigation }: any) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      isInitialLoad.current = false;
     }
   };
 
@@ -213,16 +215,25 @@ export default function MyBookingsScreen({ navigation }: any) {
                 {/* Refund Status for Cancelled Bookings */}
                 {statusLabel === 'Cancelled' && item.refund && (
                   <View style={styles.refundRow}>
-                    <View style={styles.refundInfo}>
-                      <Text style={styles.refundLabel}>Refund Status: </Text>
-                      <Text style={[styles.refundValue, { color: item.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
-                        {item.refund.refundStatus || 'Pending'}
-                      </Text>
-                    </View>
-                    <View style={styles.refundAmount}>
-                      <Text style={styles.refundPercentage}>{item.refund.refundPercentage || 0}%</Text>
-                      <Text style={styles.refundPrice}>₹{item.refund.refundAmount || 0}</Text>
-                    </View>
+                    {item.refund.refundAmount === 0 && (item.refund.refundStatus === 'Pending' || !item.refund.refundStatus) ? (
+                      <View style={styles.refundInfo}>
+                        <Text style={styles.refundLabel}>Status: </Text>
+                        <Text style={[styles.refundValue, { color: Theme.colors.error, fontFamily: Theme.typography.fontFamily }]}>Not eligible for refund</Text>
+                      </View>
+                    ) : (
+                      <>
+                        <View style={styles.refundInfo}>
+                          <Text style={styles.refundLabel}>Refund Status: </Text>
+                          <Text style={[styles.refundValue, { color: item.refund.refundStatus === 'Processed' ? '#10b981' : Theme.colors.primary }]}>
+                            {item.refund.refundStatus || 'Pending'}
+                          </Text>
+                        </View>
+                        <View style={styles.refundAmount}>
+                          <Text style={styles.refundPercentage}>{item.refund.refundPercentage || 0}%</Text>
+                          <Text style={styles.refundPrice}>₹{item.refund.refundAmount || 0}</Text>
+                        </View>
+                      </>
+                    )}
                   </View>
                 )}
 
@@ -287,9 +298,9 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   listContent: { padding: 16, paddingBottom: 100 },
   bookingCard: {
-    backgroundColor: Theme.colors.white, borderRadius: 20, padding: 16, marginBottom: 16,
+    backgroundColor: Theme.colors.card, borderRadius: 20, padding: 16, marginBottom: 16,
     borderWidth: 1, borderColor: Theme.colors.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: Theme.isDark ? 0.2 : 0.05, shadowRadius: 8, elevation: 3
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   shopLogo: { width: 56, height: 56, borderRadius: 12, backgroundColor: Theme.colors.primary + '1A' },
@@ -301,7 +312,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
   statusUpcoming: { backgroundColor: Theme.colors.primary + '1A' },
   statusCompleted: { backgroundColor: '#10b9811A' },
   statusCancelled: { backgroundColor: '#f43f5e1A' },
-  statusText: { fontSize: 9, fontWeight: '800', color: Theme.colors.textSecondary, letterSpacing: 0.5 },
+  statusText: { fontSize: 9, fontWeight: '800', color: Theme.colors.textSecondary, letterSpacing: 0.5, fontFamily: Theme.typography.fontFamily },
 
   cardDivider: { height: 1, backgroundColor: Theme.colors.border, marginVertical: 16 },
 
@@ -313,7 +324,7 @@ const getStyles = (Theme: any) => StyleSheet.create({
 
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
   rescheduleBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: Theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
-  rescheduleText: { color: Theme.colors.white, fontSize: 13, fontWeight: '700' },
+  rescheduleText: { color: Theme.colors.primaryText, fontSize: 13, fontWeight: '700' },
   cancelBtn: { flex: 1, height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#f43f5e', alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: '#f43f5e', fontSize: 13, fontWeight: '700' },
 
